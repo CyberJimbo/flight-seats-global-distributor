@@ -1,0 +1,37 @@
+{
+  "name": "flight-seats-global-distributor",
+  "version": "0.0.1",
+  "description": "Flight Seats Global Distributor",
+  "main": "./build/index.js",
+  "scripts": {
+    "dev": "lite-server",
+    "test": "ganache-cli --mnemonic=\"athlete rain bind will sustain west shaft rifle catch mention van entire\" --gasLimit=6500029 > /dev/null & npm run lint && truffle test && pkill -f ganache-cli",
+    "build": "npm run lint && npm run compile && node index.js",
+    "compile": "truffle compile",
+    "lint": "solium -d contracts/",
+    "prepublishOnly": "npm run build",
+    "deploy-test": "npm run build && truffle migrate --network test"
+  },
+  "keywords": [
+    "solidity",
+    "ethereum",
+    "contracts"
+  ],
+  "devDependencies": {
+    "lite-server": "^2.3.0",
+    "eth-gas-reporter": "^0.1.10",
+    "ganache-cli": "^6.1.6",
+    "openzeppelin-solidity": "^1.11.0",
+    "solium": "^1.1.8",
+    "truffle": "^4.1.13",
+    "truffle-hdwallet-provider": "0.0.5",
+    "web3-utils": "^1.0.0-beta.35"
+  },
+  "dependencies": {
+    "lite-uploader": "^5.0.3"
+  },
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  }
+}

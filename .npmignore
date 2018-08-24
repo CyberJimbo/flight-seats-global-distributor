@@ -1,0 +1,6 @@
+node_modules/
+.git/
+src/
+./index.js
+.idea/
+config/

@@ -1,0 +1,403 @@
+pragma solidity ^0.4.24;
+
+import {ERC721Token} from "http://github.com/OpenZeppelin/zeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
+import {ECRecovery} from "http://github.com/OpenZeppelin/zeppelin-solidity/contracts/ECRecovery.sol";
+
+
+contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Wallet", "FLIGHT-WALLET") {
+
+    enum CabinClass {Economy, Business, First}
+    enum SeatOccupiedStatus {Vacant, Occupied}
+
+    /**
+     * Ensure the given message sender is the passenger who owns the seat or the airline of the flight
+     */
+    modifier onlyAirlineOrOwnerOf(uint256 _seatId) {
+        require(getAirlineAddressForSeat(_seatId) == msg.sender || ownerOf(_seatId) == msg.sender, "Must be airline or passenger who owns the seat");
+        _;
+    }
+
+    /**
+     * Ensure the given message sender is the airline of the flight
+     */
+    modifier onlyAirlineOf(uint256 _seatId) {
+        require(getAirlineAddressForSeat(_seatId) == msg.sender, "Must be airline of the flight");
+        _;
+    }
+
+    /**
+     * Ensure the given message sender is the passenger who owns the seat
+     */
+    modifier onlyOwnerOf(uint256 _seatId) {
+        require(ownerOf(_seatId) == msg.sender, "Must be passenger who owns the seat");
+        _;
+    }
+
+    modifier onlyAirlineOfFlight(bytes8 _flightNumber, uint _departureDateTime){
+        require(getAirlineAddressForFlight(_flightNumber, _departureDateTime) == msg.sender, "Must be airline of the flight");
+        _;
+    }
+
+
+    struct Airline {
+        bytes2 code;
+        string name;
+        address airlineAddress;
+    }
+
+    struct Flight {
+        bytes32 flightId;
+        bytes8 flightNumber;
+        bytes3 origin;
+        bytes3 destination;
+        Airline airline;
+        uint departureDateTime;
+        uint256[] seatIds;
+    }
+
+    struct Seat {
+        bytes4 seatNumber;
+        uint price;
+        SeatOccupiedStatus occupiedStatus;
+        CabinClass cabin;
+        bytes32 flightId;
+        bool checkedIn;
+        bool isSeat;
+    }
+
+    struct BookingRefund {
+        address recipient;
+        uint amount;
+    }
+
+    bytes32[] public flightIds; // airlines to their belonging flightIds
+
+    mapping(bytes32 => Flight) internal flights; // flightIds to flights.
+
+    mapping(uint256 => Seat) internal seats; // seatIds to seats.
+
+    mapping(address => BookingRefund[]) internal airlineRefundsToBeProcessed;
+
+
+    function getFlightId(bytes8 _flightNumber, uint _departureDateTime) private pure returns (bytes32){
+        return keccak256(abi.encodePacked(_flightNumber, "_", _departureDateTime));
+    }
+
+    function getSeatId(bytes8 _flightNumber, uint _departureDateTime, bytes4 _seatNumber) public pure returns (uint256){
+        return uint256(keccak256(abi.encodePacked(_flightNumber, "_", _departureDateTime, "_", _seatNumber)));
+    }
+
+    function getFlightIds() public view returns (bytes32[]) {
+        return flightIds;
+    }
+
+    function getFlight(bytes32 _flightId) public view returns (bytes32,bytes8,bytes3,bytes3,string,uint,bytes2){
+        return (flights[_flightId].flightId, flights[_flightId].flightNumber, flights[_flightId].origin, flights[_flightId].destination, flights[_flightId].airline.name, flights[_flightId].departureDateTime, flights[_flightId].airline.code);
+    }
+
+    function getSeat(bytes32 _seatIdBytes) public view returns(bytes32, bytes4, uint, SeatOccupiedStatus, CabinClass, bool, bool) {
+        uint256 _seatId = uint256(_seatIdBytes);
+        return (_seatIdBytes, seats[_seatId].seatNumber, seats[_seatId].price, seats[_seatId].occupiedStatus, seats[_seatId].cabin, seats[_seatId].checkedIn, seats[_seatId].isSeat);
+    }
+
+    function getSeatsForFlight(bytes32 _flightId) public view returns (bytes32[]){
+        bytes32[] memory _seatIds = new bytes32[](flights[_flightId].seatIds.length);
+        for( uint i=0; i<flights[_flightId].seatIds.length; i++){
+            _seatIds[i] = bytes32(flights[_flightId].seatIds[i]);
+        }
+        return _seatIds;
+    }
+
+    function getAirlineAddressForSeat(uint _seatId) private view returns (address){
+        return flights[seats[_seatId].flightId].airline.airlineAddress;
+    }
+
+    function getAirlineAddressForFlight(bytes8 _flightNumber, uint _departureDateTime) private view returns (address){
+        return flights[getFlightId(_flightNumber, _departureDateTime)].airline.airlineAddress;
+    }
+
+    constructor() public {
+        createFlight(stringToBytes8("BA123"),stringToBytes3("LHR"),stringToBytes3("JFK"),1538925945,stringToBytes2("BA"),"British Airways",0xa25d0ab9da18006e039f95c13ca61b9054cb98dc,"0x063eee441348324e236587bffcc7d08a6f540e99c5f9ef9f1cecacf07c6ab72a500935688d06cfec13f2a729c82ccd0b2fde5388ead27ab35874a56b4ad2f2df01");
+        createFlight(stringToBytes8("DL555"),stringToBytes3("LHR"),stringToBytes3("JFK"),1538925945,stringToBytes2("DL"),"Delta Airlines",0xa25d0ab9da18006e039f95c13ca61b9054cb98dc,"0x063eee441348324e236587bffcc7d08a6f540e99c5f9ef9f1cecacf07c6ab72a500935688d06cfec13f2a729c82ccd0b2fde5388ead27ab35874a56b4ad2f2df01");
+
+        bytes4[] memory _seatNumbersPrepopulated = new bytes4[](3);
+        uint256[] memory _seatPricesPrepop = new uint256[](3);
+
+        _seatNumbersPrepopulated[0] = stringToBytes4("1A");
+        _seatNumbersPrepopulated[1] = stringToBytes4("1B");
+        _seatNumbersPrepopulated[2] = stringToBytes4("1C");
+
+        _seatPricesPrepop[0] = 1000;
+        _seatPricesPrepop[1] = 2000;
+        _seatPricesPrepop[2] = 3000;
+
+        addSeatInventoryToFlightCabin(stringToBytes8("BA123"), 1538925945, _seatNumbersPrepopulated,_seatPricesPrepop,CabinClass.Economy);
+        addSeatInventoryToFlightCabin(stringToBytes8("DL555"), 1538925945, _seatNumbersPrepopulated,_seatPricesPrepop,CabinClass.Economy);
+    }
+
+    function createFlight(
+        bytes8 _flightNumber,
+        bytes3 _origin,
+        bytes3 _destination,
+        uint _departureDateTime,
+        bytes2 _airlineCode,
+        string _airlineName,
+        uint _numSeats,
+        address _airlineAddress,
+        bytes _signature
+    )
+    public returns (bytes32) {
+        bytes32 _expectedHash = keccak256(abi.encodePacked(_flightNumber, "_", _departureDateTime));
+        bytes32 _expectedSignature = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n16", _expectedHash));
+
+        // require(ECRecovery.recover(_expectedSignature, _signature) == _airlineAddress, "Invalid signature");
+         require(_departureDateTime > now, "Flight has departed, Seat No Longer Available");
+
+        Airline memory _airline = Airline({
+            code: _airlineCode,
+            name: _airlineName,
+            airlineAddress: _airlineAddress
+            });
+
+        bytes32 _flightId = getFlightId(_flightNumber, _departureDateTime);
+
+        flights[_flightId] = Flight({
+            flightId: _flightId,
+            flightNumber: _flightNumber,
+            origin: _origin,
+            destination: _destination,
+            airline: _airline,
+            departureDateTime: _departureDateTime,
+            seatIds: new uint[](0)
+            });
+
+        flightIds.push(_flightId);
+        return _flightId;
+    }
+
+    function addSeatInventoryToFlightCabin(bytes8 _flightNumber,
+        uint _departureDateTime,
+        bytes4[] _seatNumbers,
+        uint[] _seatPrices,
+        CabinClass cabin
+    )
+    public
+//    onlyAirlineOfFlight(_flightNumber, _departureDateTime) //TODO figure out way to populate seat inventory. fuck :(
+    {
+        bytes32 _flightId = getFlightId(_flightNumber, _departureDateTime);
+        for(uint i=0; i<_seatNumbers.length; i++){
+            flights[_flightId].seatIds.push(createSeat(_flightNumber, _departureDateTime, _seatNumbers[i], _seatPrices[i], cabin));
+        }
+    }
+
+
+    function  createSeat(
+        bytes8 _flightNumber,
+        uint _departureDateTime,
+        bytes4 _seatNumber,
+        uint _price,
+        CabinClass _cabin
+    )
+    private returns (uint256){
+        uint256 _seatId = getSeatId(_flightNumber, _departureDateTime, _seatNumber);
+        Seat memory _seat = Seat({
+            seatNumber: _seatNumber,
+            price: _price,
+            occupiedStatus: SeatOccupiedStatus.Vacant,
+            cabin: _cabin,
+            flightId: getFlightId(_flightNumber, _departureDateTime),
+            checkedIn: false,
+            isSeat: true
+            });
+
+        seats[_seatId] = _seat;
+
+        emit seatCreatedEvent(getFlightId(_flightNumber, _departureDateTime), _seatNumber, _seatId);
+        return _seatId;
+    }
+
+    event seatCreatedEvent (
+        bytes32 flightId,
+        bytes4 seatNumber,
+        uint256 seatId
+    );
+
+
+    // function to book a flight, set seat state to occupied, take payment from passenger and send to airline, take seat from airline and send to passenger.
+    function bookSeat() public payable returns (uint)
+    {
+        bytes32 _seatIdBytes = stringToBytes32("0xfe5f7a022932ba5a67c423f1c00743ece6ab27915e814d4b51d2bc0ab5a9ab37");
+        uint256 _seatId = uint256(_seatIdBytes);
+        require(flights[seats[_seatId].flightId].departureDateTime > now, "Seat no longer available, flight has departed");
+        require(seats[_seatId].occupiedStatus == SeatOccupiedStatus.Vacant, "Seat must not be already occupied");
+        require(msg.value == seats[_seatId].price, "Passenger must pay amount equal to price of seat");
+
+        address _airlineAddress = getAirlineAddressForSeat(_seatId);
+
+        if(_exists(_seatId)){ // seat will already exist if was previously booked and subsequently cancelled. In this case the seat should be returned to the airline.
+            require(ownerOf(_seatId) == _airlineAddress, "Cannot book seat, seat already exists but does not belong to airline");
+            safeTransferFrom(_airlineAddress, msg.sender, _seatId);
+        }
+        else{
+            _mint(msg.sender, _seatId);
+        }
+
+        approve(_airlineAddress, _seatId);
+        _airlineAddress.transfer(msg.value);
+        seats[_seatId].occupiedStatus = SeatOccupiedStatus.Occupied;
+
+        return _seatId;
+    }
+
+    function checkinPassenger(uint256 _seatId, bytes32[] passportScanImage)
+    public
+    onlyOwnerOf(_seatId)
+    payable
+    returns (bytes32)
+    {
+        require(flights[seats[_seatId].flightId].departureDateTime > now, "Too late to check in, flight has departed");
+        require(seats[_seatId].occupiedStatus == SeatOccupiedStatus.Occupied, "Seat must be occupied");
+
+        //TODO instead of safe-transfer burn this seat.
+        safeTransferFrom(msg.sender, getAirlineAddressForSeat(_seatId), _seatId);
+        seats[_seatId].checkedIn = true;
+
+        bytes32 barcodeString = buildBarcodeString(_seatId);
+
+        return barcodeString;
+    }
+
+
+    function buildBarcodeString(uint256 _seatId) private pure returns (bytes32){
+        bytes32 barcodeString = "sample barcode";
+        return barcodeString;
+    }
+
+
+    /**
+  * Cancel the seat booking and obtain refund for passenger
+  */
+    function cancelSeatBookingAirlineInitiated(uint256 _seatId)
+    public
+    onlyAirlineOf(_seatId)
+    payable
+    returns (uint)
+    {
+        require(seats[_seatId].occupiedStatus == SeatOccupiedStatus.Occupied, "Seat must be occupied");
+        require(msg.value == seats[_seatId].price, "Airline must send correct refund amount for passenger in transaction");
+
+        safeTransferFrom(super.ownerOf(_seatId), getAirlineAddressForSeat(_seatId), _seatId);
+        seats[_seatId].occupiedStatus = SeatOccupiedStatus.Vacant;
+
+        super.ownerOf(_seatId).transfer(msg.value);
+
+        return _seatId;
+    }
+
+
+
+    /**
+  * Cancel the seat booking and obtain refund for passenger
+  */
+    function cancelSeatBookingPassengerInitiated(uint256 _seatId)
+    public
+    onlyOwnerOf(_seatId)
+    payable
+    returns (uint)
+    {
+        require(seats[_seatId].occupiedStatus == SeatOccupiedStatus.Occupied, "Seat must be occupied");
+        require(seats[_seatId].checkedIn == false, "You cannot cancel a booking after checkin is completed");
+
+        safeTransferFrom(msg.sender, getAirlineAddressForSeat(_seatId), _seatId);
+        seats[_seatId].occupiedStatus = SeatOccupiedStatus.Vacant;
+
+        BookingRefund memory _refund = BookingRefund({
+            recipient: msg.sender,
+            amount: seats[_seatId].price
+            });
+
+        airlineRefundsToBeProcessed[getAirlineAddressForSeat(_seatId)].push(_refund);
+
+        return _seatId;
+    }
+
+
+    // function to get all seats for a given flight.
+
+    // function to allow airline to burn expired seats.
+
+    // distressed inventory reduction
+    //    function reducePriceOfVacantSeatsCloseToDeparture(int daysToDeparture, int percentagePriceReduction){
+    //
+    //    }
+
+    // airlineRefundsToBeProcessed - function to allow airline to process this queue.
+
+
+    function stringToBytes4(string memory source) private pure returns (bytes4 result) {
+        bytes memory tempEmptyStringTest = bytes(source);
+        if (tempEmptyStringTest.length == 0) {
+            return 0x0;
+        }
+        //TODO add some requires for string length etc. see: https://medium.codylamson.com/inter-contract-communication-strings-1fa1e3c9a566
+        assembly {
+            result := mload(add(source, 32))
+        }
+    }
+
+    function stringToBytes3(string memory source) private pure returns (bytes3 result) {
+        bytes memory tempEmptyStringTest = bytes(source);
+        if (tempEmptyStringTest.length == 0) {
+            return 0x0;
+        }
+        //TODO add some requires for string length etc. see: https://medium.codylamson.com/inter-contract-communication-strings-1fa1e3c9a566
+        assembly {
+            result := mload(add(source, 32))
+        }
+    }
+
+    function stringToBytes2(string memory source) private pure returns (bytes2 result) {
+        bytes memory tempEmptyStringTest = bytes(source);
+        if (tempEmptyStringTest.length == 0) {
+            return 0x0;
+        }
+        //TODO add some requires for string length etc. see: https://medium.codylamson.com/inter-contract-communication-strings-1fa1e3c9a566
+        assembly {
+            result := mload(add(source, 32))
+        }
+    }
+
+    function stringToBytes8(string memory source) private pure returns (bytes8 result) {
+        bytes memory tempEmptyStringTest = bytes(source);
+        if (tempEmptyStringTest.length == 0) {
+            return 0x0;
+        }
+
+        assembly {
+            result := mload(add(source, 32))
+        }
+    }
+
+    function stringToBytes32(string memory source) private pure returns (bytes32 result) {
+        bytes memory tempEmptyStringTest = bytes(source);
+        if (tempEmptyStringTest.length == 0) {
+            return 0x0;
+        }
+
+        assembly {
+            result := mload(add(source, 32))
+        }
+    }
+
+    function bytes32ToString (bytes32 data) returns (string) {
+        bytes memory bytesString = new bytes(32);
+        for (uint j=0; j<32; j++) {
+            byte char = byte(bytes32(uint(data) * 2 ** (8 * j)));
+            if (char != 0) {
+                bytesString[j] = char;
+            }
+        }
+        return string(bytesString);
+    }
+
+}
