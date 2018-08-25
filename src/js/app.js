@@ -105,7 +105,8 @@ App = {
       var seatsTemplate = $('#seatsTemplate');
       for (var i = 0; i < seatIds.length; i++) {
         flightsInstance.getSeat(seatIds[i]).then(function (seat) {
-          if (seat[6] === true) {
+          let occupiedStatus = App.SeatOccupiedStatus[seat[3]];
+          if (occupiedStatus === App.SeatOccupiedStatus[0]) {
             seatsTemplate.find('.panel-title').text(appWeb3.toAscii("" + seat[1]));
             seatsTemplate.find('img').attr('src', ("images/seat-" + App.CabinClass[seat[4]]) + ".jpeg");
             seatsTemplate.find('.seat-number').text(appWeb3.toAscii("" + seat[1]));
@@ -227,8 +228,6 @@ App = {
         }
         let url = `https://ipfs.io/ipfs/${result[0].hash}`
         console.log(`Url --> ${url}`)
-        document.getElementById("url").innerHTML = url
-        document.getElementById("url").href = url
         document.getElementById("output").src = url
         var seatIdAndBarcodeString = $("#checkinTemplate").find('.btn-complete-checkin').data('id');
         const seatIdAndIpfsURL = seatIdAndBarcodeString + "," + url;
@@ -283,7 +282,6 @@ App = {
         if (!error) {
           $("#loader").hide();
           $("#BoardingPassRow").show();
-          var boardingPassRow = $('#BoardingPassRow');
           var boardingPassTemplate = $('#boardingPassTemplate');
           boardingPassTemplate.find('#barcode').attr('src', ("http://bwipjs-api.metafloor.com/?bcid=qrcode&text=" + barcodeString +"&includetext"));
           boardingPassTemplate.find('.barcodeString').text(barcodeString);
@@ -295,8 +293,12 @@ App = {
           boardingPassTemplate.find('.origin').text(appWeb3.toAscii("" + event.args.origin));
           boardingPassTemplate.find('.destination').text(appWeb3.toAscii("" + event.args.destination));
           boardingPassTemplate.find('.seatNumber').text(appWeb3.toAscii("" + event.args.seatNumber));
-          boardingPassTemplate.find('.passportScanIpfsUrl').text(appWeb3.toAscii("" + event.args.passportScanIpfsHash));
-          // boardingPassRow.append(boardingPassTemplate.html());
+          let passportScanIpfsUrl = appWeb3.toAscii("" + event.args.passportScanIpfsHash);
+          alert('passportScanIpfsUrl ' + passportScanIpfsUrl );
+          boardingPassTemplate.find('.passportScanIpfsUrl').html('<a href="' + passportScanIpfsUrl + '">'+passportScanIpfsUrl+'</a>');
+
+          // boardingPassTemplate.find('#passportScanIpfsUrl').innerHTML = passportScanIpfsUrl;
+          // boardingPassTemplate.find('#passportScanIpfsUrl').href = passportScanIpfsUrl;
         } else {
           console.log(error); //TODO go back to book seat
         }
