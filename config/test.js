@@ -1,0 +1,2 @@
+exports.url = "";
+exports.mnemonic = "";
