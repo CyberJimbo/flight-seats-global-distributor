@@ -39,7 +39,7 @@
           </div>
         </div>
         <div id="flightsTemplate" style="display: none;">
-          <div class="col-sm-6 col-md-4 col-lg-3">
+          <div class="col-sm-6 col-sm-6">
             <div class="panel panel-default">
               <div class="panel-heading">
                 <h3 class="panel-title">Flight Number</h3>
@@ -67,7 +67,7 @@
           </div>
         </div>
         <div id="seatsTemplate" style="display: none;">
-          <div class="col-sm-6 col-md-4 col-lg-3">
+          <div class="col-sm-4 col-sm-4 col-sm-4">
             <div class="panel panel-default">
               <div class="panel-heading">
                 <h3 class="panel-title">Seat Number</h3>
@@ -98,7 +98,7 @@
           </div>
         </div>
         <div id="bookingCompleteTemplate" style="display: none;">
-          <div class="col-sm-6 col-md-4 col-lg-3">
+          <div class="col-sm-6 col-sm-6">
             <div class="panel panel-default">
               <div class="panel-heading">
                 <h3 class="panel-title">Your Booking</h3>
@@ -122,7 +122,7 @@
       <div id="checkinRow" class="row" hidden>
         <div class="row">
           <div class="col-xs-12 col-sm-8 col-sm-push-2">
-            <h1 class="text-center">Please submit your passport scan in order to complete checkin</h1>
+            <h1 class="text-center">Please submit your passport scan and complete checkin</h1>
             <hr/>
             <br/>
           </div>
@@ -131,10 +131,10 @@
           <div id="fileUploadTemplate" class="col-sm-6 col-md-4 col-lg-3">
             <form action="/">
               <fieldset>
-                <legend>Upload Passport Scan Image</legend>
+                <legend>Upload Passport Scan Image to IPFS</legend>
                 <input type="file" name="photo" id="photo">
                 <br/><br/>
-                <button class="btn btn-default btn-upload-ipfs" type="button">Upload Passport</button>
+                <button class="btn btn-default btn-upload-ipfs" type="button">Upload Passport To IPFS</button>
               </fieldset>
             </form>
             </br>
@@ -155,23 +155,25 @@
 
       <div id="BoardingPassRow" class="row" hidden>
         <div class="row">
-          <div class="col-xs-12 col-sm-8 col-sm-push-2">
+          <div>
             <h1 class="text-center">You are now Checked in.<br/>Here is your boarding pass.</h1>
             <hr/>
             <br/>
           </div>
         </div>
         <div id="boardingPassTemplate">
-          <div class="col-sm-6 col-md-4 col-lg-3">
+          <div class="col-sm-6 col-sm-6">
             <div class="panel panel-default">
               <div class="panel-heading">
                 <h3 class="panel-title">Your Boarding Pass</h3>
               </div>
               <div class="panel-body ellipsis">
-                <img id="barcode" alt="100x100" data-src="holder.js/100x100" class="img-rounded img-center" style="width: 100%;"
+                <img id="barcode" alt="100x100" data-src="holder.js/100x100" class="img-rounded img-center" style="width: 50%;"
                      src="placeholder.jpg"
                      data-holder-rendered="true">
-                <strong>Barcode String</strong>: <span class="barcodeString">barcode string</span><br/><br/>
+                <div class="barcode-string-div">
+                <span class="barcode-string">barcode string</span><br/><br/>
+                </div>
                 <strong>Boarding Pass ID (ERC721 Token ID)</strong>: <span class="boardingPassId">boarding pass id</span><br/><br/>
                 <strong>Flight Number</strong>: <span class="flightNumber">flightNumber</span><br/>
                 <strong>Departure Date</strong>: <span class="departureDate">departureDateTime</span><br/>

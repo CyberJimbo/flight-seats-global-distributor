@@ -1,3 +1,18 @@
 .ellipsis {
     word-wrap: break-word
 }
+.img-center, barcode-string {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: 50%;
+}
+.barcode-string-div{
+    text-align: center;
+}
+
+.barcode-string {
+    display: inline-block;
+}
+
+

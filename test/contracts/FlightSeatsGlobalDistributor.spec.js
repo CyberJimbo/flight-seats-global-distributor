@@ -4,7 +4,7 @@ const Web3Utils = require("web3-utils");
 contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, hacker]) => {
 
   const departureDate = Math.floor(Date.now() / 1000) + 8640000;
-  console.log('departure date is ' + departureDate);
+  const seatOccupiedStatus = {'Vacant':0, 'Occupied':1};
 
   it("constructor allows the contract owner to prepopulate a flight for demo purposes", async () => {
 
@@ -32,19 +32,18 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
     const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
     const flightNumber = Web3Utils.hexToBytes(Web3Utils.toHex('DL555'));
     const flightId = await seatsDistributor.getFlightId(flightNumber, departureDate);
-    console.log('flightId ', flightId);
-
     const origin = 'LHR';
     const destination = 'JFK';
     const airlineCode = 'DL';
     const airlineName = "Delta Airlines";
-    // const hash = Web3Utils.soliditySha3(flightNumber, "_", departureDate);
-    const hash = Web3Utils.soliditySha3(airlineName);
-    const signature = web3.eth.sign(airline, flightId);
-    // console.log('hex flight ' + Web3Utils.hexToBytes(Web3Utils.toHex(flightNumber)));
-    // console.log('creating signature is ' + signature)
-    // console.log('creating hash is ' + hash)
 
+    const pseudoRandomNumber = Math.floor(Date.now() / 1000);
+    const hash = Web3Utils.soliditySha3(
+        { type: 'bytes32', value: flightId },
+        { type: 'address', value: airline },
+        { type: 'uint256', value: pseudoRandomNumber },
+    );
+    const signature = web3.eth.sign(airline, hash);
 
     await seatsDistributor.createFlight(
         flightNumber,
@@ -53,53 +52,21 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
         departureDate,
         Web3Utils.hexToBytes(Web3Utils.toHex(airlineCode)),
         airlineName,
+        3,
         airline,
         signature,
+        pseudoRandomNumber,
         {
           from: airline
         }
     );
 
     const expectedAirlineAddresses = await seatsDistributor.getActiveAirlines();
-    console.log('expectedAirlineAddresses ' + expectedAirlineAddresses);
     assert.equal(expectedAirlineAddresses[1], airline);  // expectedAirlineAddresses[0] will be the contractOwner who prepopulates a flight in the contract constructor
 
     const flightIdsForAirline = await seatsDistributor.getFlightIdsForAirline(airline);
     assert.equal(flightIdsForAirline.length, 1);
   });
-
-
-  // it("departure date test", async () => {
-  //
-  //   function toHex(str) {
-  //     var hex = ''
-  //     for (var i = 0; i < str.length; i++) {
-  //       hex += '' + str.charCodeAt(i).toString(16)
-  //     }
-  //     return hex
-  //   }
-  //
-  //   function add_months(dt, n) {
-  //
-  //     return new Date(dt.setMonth(dt.getMonth() + n));
-  //   }
-  //
-  //   const flightNumber = 'BA124';
-  //   console.log('airline ' + airline);
-  //   // var now = Date.now();
-  //   // const departureDate = new Date();
-  //   // add_months(departureDate, 2);
-  //   // console.log('departureDate is ' + (departureDate.getTime() / 1000));
-  //
-  //   let hash = Web3Utils.soliditySha3(flightNumber + "_" + 1542412800);
-  //   const signature = web3.eth.sign(contractOwner, hash);
-  //   console.log('contractOwner ' + contractOwner);
-  //   console.log('signature is ' + signature);
-  //
-  //   const address = '0x6885f585cc82a6856534d86c71d87dc3525feeb2';
-  //   console.log('checksum address ' + Web3Utils.toChecksumAddress(address));
-  // });
-
 
 
   it("should not create a flight when departure date is in the past", async () => {
@@ -146,7 +113,6 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
     const seatNumbers = ['0x31410000', '0x31420000', '0x31430000']; //bytes4 hex values for 1A, 1B, 1C.
     const seatPrices = [1000000000000000000, 2000000000000000000, 3000000000000000000];
     const cabinClass = {'Economy':0, 'Business':1, 'First':2};
-    const seatOccupiedStatus = {'Vacant':0, 'Occupied':1};
 
     await seatsDistributor.addSeatInventoryToFlightCabin(
         Web3Utils.hexToBytes(Web3Utils.toHex(flightNumber)),
@@ -172,6 +138,38 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
       assert.equal(seat[4], cabinClass.Economy);
       assert.equal(seat[5], false);
     }
+  });
+
+
+  it("airline cannot add more seat inventory than the total number of seats for this flight", async () => {
+
+    // the maximum allowed 3 seats for this flight were added in the preceding unit test, adding more here should cause failure.
+    const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
+    const flightNumber = 'DL555';
+    const seatNumbers = ['0x31440000', '0x31450000', '0x31460000']; //bytes4 hex values for 1A, 1B, 1C.
+    const seatPrices = [1000000000000000000, 2000000000000000000, 3000000000000000000];
+    const cabinClass = {'Economy':0, 'Business':1, 'First':2};
+
+    let complete = false;
+
+    try {
+      await seatsDistributor.addSeatInventoryToFlightCabin(
+          Web3Utils.hexToBytes(Web3Utils.toHex(flightNumber)),
+          departureDate,
+          seatNumbers,
+          seatPrices,
+          cabinClass.Economy,
+          {
+            from: airline
+          }
+      );
+      complete = true;
+    }
+    catch (err) {
+    }
+
+    assert.equal(complete, false);
+
   });
 
 
@@ -234,7 +232,12 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
     const erc721TokenOwner = await seatsDistributor.ownerOf(seatId);
     assert.equal(passenger, erc721TokenOwner);
 
-    // const seat = await seatsDistributor.getSeat(seatId);
+    const erc721TokenApproved = await seatsDistributor.getApproved(seatId);
+    assert.equal(airline, erc721TokenApproved);
+
+    const seat = await seatsDistributor.getSeat(seatId);
+    assert.equal(seat[3], seatOccupiedStatus.Occupied);
+
 
   });
 
@@ -301,6 +304,9 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
     const erc721TokenOwner = await seatsDistributor.ownerOf(boardPassId);
     assert.equal(passenger, erc721TokenOwner);
 
+    const seat = await seatsDistributor.getSeat(seatId);
+    assert.equal(seat[5], true); //checked in flag on seat
+
   });
 
 
@@ -310,7 +316,21 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
     const flightIdsForAirline = await seatsDistributor.getFlightIdsForAirline(airline);
     const flightId = flightIdsForAirline[0];
     const seatIdsForFlight = await seatsDistributor.getSeatsForFlight(flightId);
-    const seatId = seatIdsForFlight[0];
+    const seatId = seatIdsForFlight[1];
+
+    const seatPriceEth = 2;
+    const seatPriceWei = Web3Utils.toWei(seatPriceEth.toString(), "ether");
+
+    await seatsDistributor.bookSeat(
+        seatId,
+        {
+          from: passenger,
+          value: seatPriceWei
+        }
+    );
+
+    const erc721TokenOwner = await seatsDistributor.ownerOf(seatId);
+    assert.equal(passenger, erc721TokenOwner);
 
     const barcodeStringParams = await seatsDistributor.getBarcodeStringParametersForBoardingPass(seatId);
     const barcodeStringForBoardingPass = web3.toUtf8(barcodeStringParams[0]) +
@@ -342,7 +362,7 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
   });
 
 
-  it("passenger cannot book a seat when the contract has been paused via emergency-stop, can then book again once contract has been unpaused.", async () => {
+  it("airline can cancel a seat booking, passenger receives a refund and airline takes back the ER721 Seat token", async () => {
 
     const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
     const flightIdsForAirline = await seatsDistributor.getFlightIdsForAirline(airline);
@@ -351,6 +371,41 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
     const seatId = seatIdsForFlight[1];
 
     const seatPriceEth = 2;
+    const seatPriceWei = Web3Utils.toWei(seatPriceEth.toString(), "ether");
+    const passengerOriginalWeiBalance = await web3.eth.getBalance(passenger);
+
+    await seatsDistributor.cancelSeatBookingAirlineInitiated(
+        seatId,
+        {
+          from: airline,
+          value: seatPriceWei
+        }
+    );
+
+    const passengerFinalWeiBalance = await web3.eth.getBalance(passenger);
+    const expectedEth = parseFloat(Web3Utils.fromWei(passengerOriginalWeiBalance.toString(), "ether")) + seatPriceEth;
+    const expectedWeiBalance = Web3Utils.toWei(expectedEth.toString(), "ether");
+
+    assert.equal(passengerFinalWeiBalance.toNumber(), expectedWeiBalance);
+
+    const erc721TokenOwner = await seatsDistributor.ownerOf(seatId);
+    assert.equal(airline, erc721TokenOwner);
+
+    const seat = await seatsDistributor.getSeat(seatId);
+    assert.equal(seat[3], seatOccupiedStatus.Vacant);
+  });
+
+
+
+  it("passenger cannot book a seat when the contract has been paused via emergency-stop, can then book again once contract has been unpaused.", async () => {
+
+    const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
+    const flightIdsForAirline = await seatsDistributor.getFlightIdsForAirline(airline);
+    const flightId = flightIdsForAirline[0];
+    const seatIdsForFlight = await seatsDistributor.getSeatsForFlight(flightId);
+    const seatId = seatIdsForFlight[2];
+
+    const seatPriceEth = 3;
     const seatPriceWei = Web3Utils.toWei(seatPriceEth.toString(), "ether");
     const airlineOriginalWeiBalance = await web3.eth.getBalance(airline);
 
@@ -395,6 +450,40 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
 
     const erc721TokenOwner = await seatsDistributor.ownerOf(seatId);
     assert.equal(passenger, erc721TokenOwner);
+  });
+
+
+  it("passenger can cancel a seat booking, airline takes back the ER721 Seat token and places a BookingRefund in a queue to process later", async () => {
+
+    const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
+    const flightIdsForAirline = await seatsDistributor.getFlightIdsForAirline(airline);
+    const flightId = flightIdsForAirline[0];
+    const seatIdsForFlight = await seatsDistributor.getSeatsForFlight(flightId);
+    const seatId = seatIdsForFlight[2];
+
+    const seatPriceEth = 3;
+    const seatPriceWei = Web3Utils.toWei(seatPriceEth.toString(), "ether");
+    const passengerOriginalWeiBalance = await web3.eth.getBalance(passenger);
+
+    await seatsDistributor.cancelSeatBookingAirlineInitiated(
+        seatId,
+        {
+          from: airline,
+          value: seatPriceWei
+        }
+    );
+
+    const passengerFinalWeiBalance = await web3.eth.getBalance(passenger);
+    const expectedEth = parseFloat(Web3Utils.fromWei(passengerOriginalWeiBalance.toString(), "ether")) + seatPriceEth;
+    const expectedWeiBalance = Web3Utils.toWei(expectedEth.toString(), "ether");
+
+    assert.equal(passengerFinalWeiBalance.toNumber(), expectedWeiBalance);
+
+    const erc721TokenOwner = await seatsDistributor.ownerOf(seatId);
+    assert.equal(airline, erc721TokenOwner);
+
+    // const seat = await seatsDistributor.getSeat(seatId);
+
   });
 
 });

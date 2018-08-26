@@ -102,19 +102,25 @@ App = {
       return flightsInstance.getSeatsForFlight(flightId);
     }).then(function (seatIds) {
       var seatsRow = $('#seatsRow');
-      var seatsTemplate = $('#seatsTemplate');
       for (var i = 0; i < seatIds.length; i++) {
         flightsInstance.getSeat(seatIds[i]).then(function (seat) {
-          let occupiedStatus = App.SeatOccupiedStatus[seat[3]];
-          if (occupiedStatus === App.SeatOccupiedStatus[0]) {
+          if (seat[6] === true) {
+            var seatsTemplate = $('#seatsTemplate');
             seatsTemplate.find('.panel-title').text(appWeb3.toAscii("" + seat[1]));
             seatsTemplate.find('img').attr('src', ("images/seat-" + App.CabinClass[seat[4]]) + ".jpeg");
             seatsTemplate.find('.seat-number').text(appWeb3.toAscii("" + seat[1]));
             seatsTemplate.find('.seat-price').text(seat[2]);
-            seatsTemplate.find('.seat-status').text(App.SeatOccupiedStatus[seat[3]]);
+            let occupiedStatus = App.SeatOccupiedStatus[seat[3]];
+            seatsTemplate.find('.seat-status').text(occupiedStatus);
             seatsTemplate.find('.seat-cabin').text(App.CabinClass[seat[4]]);
             var seatAndPrice = seat[0].toFixed() + "," + seat[2];
             seatsTemplate.find('.btn-book-seat').attr('data-id', seatAndPrice);
+            if(occupiedStatus === App.SeatOccupiedStatus[1]) {
+              seatsTemplate.find(`[data-id='${seatAndPrice}']`).prop('disabled', true);
+            }
+            else{
+              seatsTemplate.find(`[data-id='${seatAndPrice}']`).prop('disabled', false);
+            }
             seatsRow.append(seatsTemplate.html());
           }
         });
@@ -284,7 +290,7 @@ App = {
           $("#BoardingPassRow").show();
           var boardingPassTemplate = $('#boardingPassTemplate');
           boardingPassTemplate.find('#barcode').attr('src', ("http://bwipjs-api.metafloor.com/?bcid=qrcode&text=" + barcodeString +"&includetext"));
-          boardingPassTemplate.find('.barcodeString').text(barcodeString);
+          boardingPassTemplate.find('.barcode-string').text(barcodeString);
           boardingPassTemplate.find('.boardingPassId').text(event.args.boardingPassId.toFixed());
           boardingPassTemplate.find('.flightNumber').text(appWeb3.toAscii("" + event.args.flightNumber));
           var departureDate = new Date();
@@ -294,11 +300,8 @@ App = {
           boardingPassTemplate.find('.destination').text(appWeb3.toAscii("" + event.args.destination));
           boardingPassTemplate.find('.seatNumber').text(appWeb3.toAscii("" + event.args.seatNumber));
           let passportScanIpfsUrl = appWeb3.toAscii("" + event.args.passportScanIpfsHash);
-          alert('passportScanIpfsUrl ' + passportScanIpfsUrl );
+          // alert('passportScanIpfsUrl ' + passportScanIpfsUrl );
           boardingPassTemplate.find('.passportScanIpfsUrl').html('<a href="' + passportScanIpfsUrl + '">'+passportScanIpfsUrl+'</a>');
-
-          // boardingPassTemplate.find('#passportScanIpfsUrl').innerHTML = passportScanIpfsUrl;
-          // boardingPassTemplate.find('#passportScanIpfsUrl').href = passportScanIpfsUrl;
         } else {
           console.log(error); //TODO go back to book seat
         }
