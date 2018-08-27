@@ -73,12 +73,19 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
 
     const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
     const flightNumber = 'DL555';
+    const departureDateInPast = Math.floor(Date.now() / 1000) - 86400;
+    const flightId = await seatsDistributor.getFlightId(flightNumber, departureDateInPast);
     const origin = 'LHR';
     const destination = 'JFK';
-    const departureDateInPast = Math.floor(Date.now() / 1000) - 86400;
     const airlineCode = 'DL';
     const airlineName = "Delta Airlines";
-    const hash = Web3Utils.soliditySha3(airlineName);
+
+    const pseudoRandomNumber = Math.floor(Date.now() / 1000);
+    const hash = Web3Utils.soliditySha3(
+        { type: 'bytes32', value: flightId },
+        { type: 'address', value: airline },
+        { type: 'uint256', value: pseudoRandomNumber },
+    );
     const signature = web3.eth.sign(airline, hash);
 
     let complete = false;
@@ -91,8 +98,10 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
           departureDateInPast,
           Web3Utils.hexToBytes(Web3Utils.toHex(airlineCode)),
           airlineName,
+          6,
           airline,
           signature,
+          pseudoRandomNumber,
           {
             from: airline
           }
@@ -110,7 +119,7 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
 
     const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
     const flightNumber = 'DL555';
-    const seatNumbers = ['0x31410000', '0x31420000', '0x31430000']; //bytes4 hex values for 1A, 1B, 1C.
+    const seatNumbers = ['0x31410000', '0x31420000', '0x31430000']; //bytes4 hex values for 1A, 1B, 1C, 1D
     const seatPrices = [1000000000000000000, 2000000000000000000, 3000000000000000000];
     const cabinClass = {'Economy':0, 'Business':1, 'First':2};
 
@@ -213,7 +222,6 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
 
     const seatPriceEth = 1;
     const seatPriceWei = Web3Utils.toWei(seatPriceEth.toString(), "ether");
-    const airlineOriginalWeiBalance = await web3.eth.getBalance(airline);
 
     await seatsDistributor.bookSeat(
         seatId,
@@ -223,12 +231,6 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
         }
     );
 
-    const airlineFinalWeiBalance = await web3.eth.getBalance(airline);
-    const expectedEth = parseFloat(Web3Utils.fromWei(airlineOriginalWeiBalance.toString(), "ether")) + seatPriceEth;
-    const expectedWeiBalance = Web3Utils.toWei(expectedEth.toString(), "ether");
-
-    assert.equal(airlineFinalWeiBalance.toNumber(), expectedWeiBalance);
-
     const erc721TokenOwner = await seatsDistributor.ownerOf(seatId);
     assert.equal(passenger, erc721TokenOwner);
 
@@ -237,6 +239,25 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
 
     const seat = await seatsDistributor.getSeat(seatId);
     assert.equal(seat[3], seatOccupiedStatus.Occupied);
+
+    // Now airline calls withdrawFlightFees to pull the flight fee from the contract.
+
+    const airlineOriginalWeiBalance = await web3.eth.getBalance(airline);
+    const receipt = await seatsDistributor.withdrawFlightFees(
+        airline,
+        {
+          from: airline
+        }
+    );
+
+    const tx = await web3.eth.getTransaction(receipt.tx);
+    const gasCost = tx.gasPrice.mul(receipt.receipt.gasUsed);
+
+    const airlineFinalWeiBalance = await web3.eth.getBalance(airline);
+    const expectedEth = parseFloat(Web3Utils.fromWei(airlineOriginalWeiBalance.toString(), "ether")) + seatPriceEth -  parseFloat(Web3Utils.fromWei(gasCost.toString(), "ether"));
+    const expectedWeiBalance = Web3Utils.toWei(expectedEth.toString(), "ether");
+
+    assert.equal(airlineFinalWeiBalance.toNumber(), expectedWeiBalance);
 
 
   });
@@ -362,41 +383,6 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
   });
 
 
-  it("airline can cancel a seat booking, passenger receives a refund and airline takes back the ER721 Seat token", async () => {
-
-    const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
-    const flightIdsForAirline = await seatsDistributor.getFlightIdsForAirline(airline);
-    const flightId = flightIdsForAirline[0];
-    const seatIdsForFlight = await seatsDistributor.getSeatsForFlight(flightId);
-    const seatId = seatIdsForFlight[1];
-
-    const seatPriceEth = 2;
-    const seatPriceWei = Web3Utils.toWei(seatPriceEth.toString(), "ether");
-    const passengerOriginalWeiBalance = await web3.eth.getBalance(passenger);
-
-    await seatsDistributor.cancelSeatBookingAirlineInitiated(
-        seatId,
-        {
-          from: airline,
-          value: seatPriceWei
-        }
-    );
-
-    const passengerFinalWeiBalance = await web3.eth.getBalance(passenger);
-    const expectedEth = parseFloat(Web3Utils.fromWei(passengerOriginalWeiBalance.toString(), "ether")) + seatPriceEth;
-    const expectedWeiBalance = Web3Utils.toWei(expectedEth.toString(), "ether");
-
-    assert.equal(passengerFinalWeiBalance.toNumber(), expectedWeiBalance);
-
-    const erc721TokenOwner = await seatsDistributor.ownerOf(seatId);
-    assert.equal(airline, erc721TokenOwner);
-
-    const seat = await seatsDistributor.getSeat(seatId);
-    assert.equal(seat[3], seatOccupiedStatus.Vacant);
-  });
-
-
-
   it("passenger cannot book a seat when the contract has been paused via emergency-stop, can then book again once contract has been unpaused.", async () => {
 
     const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
@@ -407,7 +393,6 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
 
     const seatPriceEth = 3;
     const seatPriceWei = Web3Utils.toWei(seatPriceEth.toString(), "ether");
-    const airlineOriginalWeiBalance = await web3.eth.getBalance(airline);
 
     await seatsDistributor.pause();
 
@@ -443,47 +428,195 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
 
     assert.equal(complete, true);
 
-    const airlineFinalWeiBalance = await web3.eth.getBalance(airline);
-    const expectedEth = parseFloat(Web3Utils.fromWei(airlineOriginalWeiBalance.toString(), "ether")) + seatPriceEth;
-    const expectedWeiBalance = Web3Utils.toWei(expectedEth.toString(), "ether");
-    assert.equal(airlineFinalWeiBalance.toNumber(), expectedWeiBalance);
+    await seatsDistributor.withdrawFlightFees(
+        airline,
+        {
+          from: airline
+        }
+    );
 
     const erc721TokenOwner = await seatsDistributor.ownerOf(seatId);
     assert.equal(passenger, erc721TokenOwner);
   });
 
 
-  it("passenger can cancel a seat booking, airline takes back the ER721 Seat token and places a BookingRefund in a queue to process later", async () => {
+  it("airline can cancel a seat booking, airline takes back the ER721 Seat token and places a BookingRefund in a queue to process later", async () => {
 
     const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
     const flightIdsForAirline = await seatsDistributor.getFlightIdsForAirline(airline);
     const flightId = flightIdsForAirline[0];
     const seatIdsForFlight = await seatsDistributor.getSeatsForFlight(flightId);
-    const seatId = seatIdsForFlight[2];
+    const seatIdCancelledByAirline = seatIdsForFlight[1];
 
-    const seatPriceEth = 3;
-    const seatPriceWei = Web3Utils.toWei(seatPriceEth.toString(), "ether");
+    // const seatPriceEth = 2;
+    // const seatPriceWei = Web3Utils.toWei(seatPriceEth.toString(), "ether");
+    // const passengerOriginalWeiBalance = await web3.eth.getBalance(passenger);
+
+    await seatsDistributor.cancelSeatBooking(
+        seatIdCancelledByAirline,
+        {
+          from: airline
+        }
+    );
+
+    const erc721TokenOwnerForAirlineCancelled = await seatsDistributor.ownerOf(seatIdCancelledByAirline);
+    assert.equal(airline, erc721TokenOwnerForAirlineCancelled);
+
+    const seatCancelledByAirline = await seatsDistributor.getSeat(seatIdCancelledByAirline);
+    assert.equal(seatCancelledByAirline[3], seatOccupiedStatus.Vacant);
+
+
+    const seatIdCancelledByPassenger = seatIdsForFlight[2];
+    await seatsDistributor.cancelSeatBooking(
+        seatIdCancelledByPassenger,
+        {
+          from: passenger
+        }
+    );
+
+    const erc721TokenOwnerForPassengerCancelled = await seatsDistributor.ownerOf(seatIdCancelledByPassenger);
+    assert.equal(airline, erc721TokenOwnerForPassengerCancelled);
+
+    const seatCancelledByPassenger = await seatsDistributor.getSeat(seatIdCancelledByPassenger);
+    assert.equal(seatCancelledByPassenger[3], seatOccupiedStatus.Vacant);
+
+    const amountToRefund = seatCancelledByAirline[2].plus(seatCancelledByPassenger[2]);
+    console.log('amountToRefund ' + amountToRefund);
+
+    const pseudoRandomNumber = Math.floor(Date.now() / 1000);
+    const hash = Web3Utils.soliditySha3(
+        { type: 'address', value: airline },
+        { type: 'uint256', value: amountToRefund },
+        { type: 'uint256', value: pseudoRandomNumber }
+    );
+    const signature = web3.eth.sign(airline, hash);
+
     const passengerOriginalWeiBalance = await web3.eth.getBalance(passenger);
 
-    await seatsDistributor.cancelSeatBookingAirlineInitiated(
-        seatId,
+    await seatsDistributor.processAirlineRefunds(
+        amountToRefund,
+        pseudoRandomNumber,
+        signature,
         {
           from: airline,
-          value: seatPriceWei
+          value: amountToRefund
         }
     );
 
     const passengerFinalWeiBalance = await web3.eth.getBalance(passenger);
-    const expectedEth = parseFloat(Web3Utils.fromWei(passengerOriginalWeiBalance.toString(), "ether")) + seatPriceEth;
+    const expectedEth = parseFloat(Web3Utils.fromWei(passengerOriginalWeiBalance.toString(), "ether")) + parseFloat(Web3Utils.fromWei(amountToRefund.toString(), "ether"));
     const expectedWeiBalance = Web3Utils.toWei(expectedEth.toString(), "ether");
 
     assert.equal(passengerFinalWeiBalance.toNumber(), expectedWeiBalance);
 
-    const erc721TokenOwner = await seatsDistributor.ownerOf(seatId);
-    assert.equal(airline, erc721TokenOwner);
-
-    // const seat = await seatsDistributor.getSeat(seatId);
 
   });
+
+
+
+  // it("passenger can cancel a seat booking, airline takes back the ER721 Seat token and places a BookingRefund in a queue to process later", async () => {
+  //
+  //   const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
+  //   const flightIdsForAirline = await seatsDistributor.getFlightIdsForAirline(airline);
+  //   const flightId = flightIdsForAirline[0];
+  //   const seatIdsForFlight = await seatsDistributor.getSeatsForFlight(flightId);
+  //   let seatId = seatIdsForFlight[5];
+  //
+  //   // const seatPriceEth = 3;
+  //   // const seatPriceWei = Web3Utils.toWei(seatPriceEth.toString(), "ether");
+  //
+  //   await seatsDistributor.cancelSeatBooking(
+  //       seatId,
+  //       {
+  //         from: passenger
+  //       }
+  //   );
+  //
+  //   const erc721TokenOwner = await seatsDistributor.ownerOf(seatId);
+  //   assert.equal(airline, erc721TokenOwner);
+  //
+  //   const seat1 = await seatsDistributor.getSeat(seatId);
+  //   assert.equal(seat1[3], seatOccupiedStatus.Vacant);
+  //
+  //   seatId = seatIdsForFlight[6];
+  //
+  //   await seatsDistributor.cancelSeatBooking(
+  //       seatId,
+  //       {
+  //         from: passenger
+  //       }
+  //   );
+  //
+  //   const erc721TokenOwner2 = await seatsDistributor.ownerOf(seatId);
+  //   assert.equal(airline, erc721TokenOwner2);
+  //
+  //   const seat2 = await seatsDistributor.getSeat(seatId);
+  //   assert.equal(seat2[3], seatOccupiedStatus.Vacant);
+  //
+  //
+  //   //
+  //   // console.log('seat number is ' + seat[1]);
+  //   // console.log('seatPrice is ' + seat[2]);
+  //
+  //   // const passengerOriginalWeiBalance = await web3.eth.getBalance(passenger);
+  //   //
+  //   // const pseudoRandomNumber = Math.floor(Date.now() / 1000);
+  //   // const hash = Web3Utils.soliditySha3(
+  //   //     { type: 'address', value: airline },
+  //   //     { type: 'uint256', value: seatPriceWei },
+  //   //     { type: 'uint256', value: pseudoRandomNumber }
+  //   // );
+  //   // const signature = web3.eth.sign(airline, hash);
+  //   //
+  //   // await seatsDistributor.processAirlineRefunds(
+  //   //     seatPriceWei,
+  //   //     pseudoRandomNumber,
+  //   //     signature,
+  //   //     {
+  //   //       from: airline,
+  //   //       value: seatPriceWei
+  //   //     }
+  //   // );
+  //   //
+  //   // const passengerFinalWeiBalance = await web3.eth.getBalance(passenger);
+  //   // const expectedEth = parseFloat(Web3Utils.fromWei(passengerOriginalWeiBalance.toString(), "ether")) + seatPriceEth;
+  //   // const expectedWeiBalance = Web3Utils.toWei(expectedEth.toString(), "ether");
+  //   //
+  //   // assert.equal(passengerFinalWeiBalance.toNumber(), expectedWeiBalance);
+  //
+  // });
+  //
+  // it("airline can process the refunds for the passenger, the refunds were triggered when the airline/passenger cancelled the seats ", async () => {
+  //
+  //   const seatPriceEth = 3;
+  //   const seatPriceWei = Web3Utils.toWei(seatPriceEth.toString(), "ether");
+  //   const passengerOriginalWeiBalance = await web3.eth.getBalance(passenger);
+  //
+  //   const pseudoRandomNumber = Math.floor(Date.now() / 1000);
+  //   const hash = Web3Utils.soliditySha3(
+  //       { type: 'address', value: airline },
+  //       { type: 'uint256', value: seatPriceWei },
+  //       { type: 'uint256', value: pseudoRandomNumber }
+  //   );
+  //   const signature = web3.eth.sign(airline, hash);
+  //
+  //   await seatsDistributor.processAirlineRefunds(
+  //       seatPriceWei,
+  //       pseudoRandomNumber,
+  //       signature,
+  //       {
+  //         from: airline,
+  //         value: seatPriceWei
+  //       }
+  //   );
+  //
+  //   const passengerFinalWeiBalance = await web3.eth.getBalance(passenger);
+  //   const expectedEth = parseFloat(Web3Utils.fromWei(passengerOriginalWeiBalance.toString(), "ether")) + seatPriceEth;
+  //   const expectedWeiBalance = Web3Utils.toWei(expectedEth.toString(), "ether");
+  //
+  //   assert.equal(passengerFinalWeiBalance.toNumber(), expectedWeiBalance);
+  //
+  //
+  // });
 
 });

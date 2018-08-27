@@ -3,11 +3,9 @@ pragma solidity ^0.4.24;
 import {ERC721Token} from "openzeppelin-solidity/contracts/token/ERC721/ERC721Token.sol";
 import "openzeppelin-solidity/contracts/ECRecovery.sol";
 import "openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", "FLIGHT-SEAT"), Pausable {
 
-    using SafeMath for uint256;
     using ECRecovery for bytes32;
 
     enum CabinClass {Economy, Business, First}
@@ -79,6 +77,7 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
     struct BookingRefund {
         address recipient;
         uint amount;
+        bool paid;
     }
 
     address[] public activeAirlines;
@@ -91,9 +90,11 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
 
     mapping(uint256 => BoardingPass) internal seatBoardingPasses; // seatIds to boarding passes.
 
-    mapping(address => BookingRefund[]) internal airlineRefundsToBeProcessed;
+    mapping(address => BookingRefund[]) private airlineRefundsToBeProcessed;
 
-    mapping(uint256 => bool) usedNonces;
+    mapping(address => uint256) private airlineFlightFeeDeposits;
+
+    mapping(uint256 => bool) private usedNonces;
 
     function getBoardingPassForSeat(uint _seatId) public view returns (uint256, uint256, bytes32, bytes) {
         return(seatBoardingPasses[_seatId].id, seatBoardingPasses[_seatId].seatId, seatBoardingPasses[_seatId].barcodeString, seatBoardingPasses[_seatId].passportScanIpfsHash);
@@ -140,11 +141,6 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
     }
 
     constructor() public {
-//        bytes8 _flightNumber = 0x4241313235000000;
-//        uint _departureDateTime = 1543734893;
-//        bytes32 _flightId = getFlightId(_flightNumber, _departureDateTime);
-//        bytes32 _expectedSignature = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _flightId));
-
         createFlight(0x4241313235000000,0x4c4852,0x4a464b,1543734893,0x4241,"British Airways",9,owner,abi.encodePacked(""),555);
 //        createFlight(0x444c353535000000,0x4c4852,0x4a464b,1542412800,0x444c,"Delta Airlines",owner,abi.encodePacked(""));
 
@@ -153,33 +149,33 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
 
         _seatNumbersPrepopulated[0] = stringToBytes4("1A");
         _seatNumbersPrepopulated[1] = stringToBytes4("1B");
-        _seatNumbersPrepopulated[2] = stringToBytes4("1C");
+//        _seatNumbersPrepopulated[2] = stringToBytes4("1C");
 
         _seatPricesPrepopulated[0] = 10000000000000000000;
         _seatPricesPrepopulated[1] = 9000000000000000000;
-        _seatPricesPrepopulated[2] = 8000000000000000000;
+//        _seatPricesPrepopulated[2] = 8000000000000000000;
 //
         addSeatInventoryToFlightCabin(0x4241313235000000, 1543734893, _seatNumbersPrepopulated, _seatPricesPrepopulated,CabinClass.First);
 //        addSeatInventoryToFlightCabin(0x444c353535000000, 1542412800, _seatNumbersPrepopulated, _seatPricesPrepopulated,CabinClass.First);
 //
         _seatNumbersPrepopulated[0] = stringToBytes4("2A");
         _seatNumbersPrepopulated[1] = stringToBytes4("2B");
-        _seatNumbersPrepopulated[2] = stringToBytes4("2C");
+//        _seatNumbersPrepopulated[2] = stringToBytes4("2C");
 
         _seatPricesPrepopulated[0] = 6000000000000000000;
         _seatPricesPrepopulated[1] = 5000000000000000000;
-        _seatPricesPrepopulated[2] = 4000000000000000000;
+//        _seatPricesPrepopulated[2] = 4000000000000000000;
 //
         addSeatInventoryToFlightCabin(0x4241313235000000, 1543734893, _seatNumbersPrepopulated, _seatPricesPrepopulated,CabinClass.Business);
 //        addSeatInventoryToFlightCabin(0x444c353535000000, 1542412800, _seatNumbersPrepopulated, _seatPricesPrepopulated,CabinClass.Business);
 
         _seatNumbersPrepopulated[0] = stringToBytes4("3A");
         _seatNumbersPrepopulated[1] = stringToBytes4("3B");
-        _seatNumbersPrepopulated[2] = stringToBytes4("3C");
+//        _seatNumbersPrepopulated[2] = stringToBytes4("3C");
 
         _seatPricesPrepopulated[0] = 3000000000000000000;
         _seatPricesPrepopulated[1] = 2000000000000000000;
-        _seatPricesPrepopulated[2] = 1000000000000000000;
+//        _seatPricesPrepopulated[2] = 1000000000000000000;
 //
         addSeatInventoryToFlightCabin(0x4241313235000000, 1543734893, _seatNumbersPrepopulated, _seatPricesPrepopulated,CabinClass.Economy);
 //        addSeatInventoryToFlightCabin(0x444c353535000000, 1542412800, _seatNumbersPrepopulated, _seatPricesPrepopulated,CabinClass.Economy);
@@ -248,7 +244,7 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
     public
     {
         bytes32 _flightId = getFlightId(_flightNumber, _departureDateTime);
-        require(flights[_flightId].seatIds.length.add(_seatNumbers.length) <= flights[_flightId].totalNumberSeats, "you cannot add more seats than the total number of seats for flight");
+        require((_seatNumbers.length + flights[_flightId].seatIds.length) <= flights[_flightId].totalNumberSeats, "you cannot add more seats than the total number of seats for flight");
         require(_seatNumbers.length == _seatPrices.length, "you must supply a corresponding seat price for each seat number");
 
         for(uint i=0; i<_seatNumbers.length; i++){
@@ -314,7 +310,7 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
         }
 
         approve(_airlineAddress, _seatId);
-        _airlineAddress.transfer(msg.value); //called last to reduce race-condition vulnerabilities.
+        depositFlightFeeToAirline(_airlineAddress);
 
         emit SeatBookedEvent(msg.sender, _seatId, getFlightOfSeat(_seatId).flightNumber, getFlightOfSeat(_seatId).departureDateTime, getFlightOfSeat(_seatId).origin, getFlightOfSeat(_seatId).destination, seats[_seatId].seatNumber);
 
@@ -330,6 +326,30 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
         bytes3 destination,
         bytes4 seatNumber
     );
+
+
+    function depositFlightFeeToAirline(address _airline) internal {
+        uint256 amount = msg.value;
+        airlineFlightFeeDeposits[_airline] = airlineFlightFeeDeposits[_airline] + amount;
+
+        emit FlightFeeDeposited(_airline, amount);
+    }
+
+    function withdrawFlightFees(address _airline) public {
+        require(msg.sender == _airline, "Only the airline can withdraw their own fees");
+
+        uint256 payment = airlineFlightFeeDeposits[_airline];
+        assert(address(this).balance >= payment);
+
+        airlineFlightFeeDeposits[_airline] = 0;
+        _airline.transfer(payment);
+
+        emit FlightFeesWithdrawn(_airline, payment);
+    }
+
+
+    event FlightFeeDeposited(address indexed airline, uint256 weiAmount);
+    event FlightFeesWithdrawn(address indexed airline, uint256 weiAmount);
 
 
     function checkinPassenger(uint256 _seatId, bytes32 _barcodeString, bytes memory _passportScanIpfsHash)
@@ -393,32 +413,8 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
     /**
   * Cancel the seat booking and obtain refund for passenger
   */
-    function cancelSeatBookingAirlineInitiated(uint256 _seatId)
-    onlyAirlineOf(_seatId)
-    whenNotPaused
-    public
-    payable
-    returns (uint)
-    {
-        require(exists(_seatId), "Seat must exist in order to cancel seat booking");
-        require(seats[_seatId].occupiedStatus == SeatOccupiedStatus.Occupied, "Seat must be occupied");
-        require(msg.value == seats[_seatId].price, "Airline must send correct refund amount for passenger in transaction");
-
-        ownerOf(_seatId).transfer(msg.value);
-        safeTransferFrom(ownerOf(_seatId), getAirlineAddressForSeat(_seatId), _seatId);
-        seats[_seatId].occupiedStatus = SeatOccupiedStatus.Vacant;
-
-
-        return _seatId;
-    }
-
-
-
-    /**
-  * Cancel the seat booking and obtain refund for passenger
-  */
-    function cancelSeatBookingPassengerInitiated(uint256 _seatId)
-    onlyPassengerOf(_seatId)
+    function cancelSeatBooking(uint256 _seatId)
+    onlyAirlineOrPassengerOf(_seatId)
     whenNotPaused
     public
     returns (uint)
@@ -427,18 +423,61 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
         require(seats[_seatId].occupiedStatus == SeatOccupiedStatus.Occupied, "Seat must be occupied");
         require(seats[_seatId].checkedIn == false, "You cannot cancel a booking after checkin is completed");
 
-        safeTransferFrom(msg.sender, getAirlineAddressForSeat(_seatId), _seatId);
         seats[_seatId].occupiedStatus = SeatOccupiedStatus.Vacant;
 
+        address _airline = getAirlineAddressForSeat(_seatId);
+        address _passenger = ownerOf(_seatId);
+        require(_passenger != _airline, "this seat has already been cancelled and returned to the airline");
+
         BookingRefund memory _refund = BookingRefund({
-            recipient: msg.sender,
-            amount: seats[_seatId].price
+            recipient: _passenger,
+            amount: seats[_seatId].price,
+            paid: false
             });
 
-//        airlineRefundsToBeProcessed[getAirlineAddressForSeat(_seatId)].push(_refund);
+        safeTransferFrom(_passenger, _airline, _seatId);
+        airlineRefundsToBeProcessed[_airline].push(_refund);
 
         return _seatId;
     }
+
+
+    function processAirlineRefunds(uint256 _amountToRefund, uint256 _nonce, bytes _airlineSig)
+    whenNotPaused
+    public
+    payable
+    {
+        require(airlineRefundsToBeProcessed[msg.sender].length > 0, "this airline does not have any refunds to process");
+        require(!usedNonces[_nonce], "nonce already used");
+        require(_amountToRefund == msg.value, "amountToRefund does not equal amount sent");
+
+        // Check the signer of the offer is the right address
+        bytes32 airlineSigned = keccak256(abi.encodePacked(msg.sender, _amountToRefund, _nonce)).toEthSignedMessageHash();
+        require(airlineSigned.recover(_airlineSig) == msg.sender, "Invalid airline signature, nice try");
+
+        BookingRefund[] _refunds = airlineRefundsToBeProcessed[msg.sender];
+
+        for(uint i=0; i<_refunds.length; i++){
+            if(_refunds[i].amount <= _amountToRefund){
+                _refunds[i].recipient.transfer(_refunds[i].amount);
+                _amountToRefund -= _refunds[i].amount;
+                _refunds[i].paid = true;
+                emit RefundProcessedEvent(msg.sender, _refunds[i].recipient, _refunds[i].amount);
+            }
+        }
+//        shift left on the _refunds array and delete to remove all paid
+        uint deleted = 0;
+        while (_refunds[0].paid == true){
+            for(uint j=0 ;j<_refunds.length-1; j++) {
+                _refunds[j] =  _refunds[j+1];
+            }
+            delete _refunds[_refunds.length-1];
+            deleted++;
+        }
+        _refunds.length -= deleted;
+    }
+
+    event RefundProcessedEvent(address airline, address recipient, uint256 weiAmount);
 
 
     function kill() public {
