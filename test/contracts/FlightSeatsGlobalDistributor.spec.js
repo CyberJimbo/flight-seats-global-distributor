@@ -6,27 +6,24 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
   const departureDate = Math.floor(Date.now() / 1000) + 8640000;
   const seatOccupiedStatus = {'Vacant':0, 'Occupied':1};
 
+  /**
+   * tests that the contract constructor initialises a single flight
+   */
   it("constructor allows the contract owner to prepopulate a flight for demo purposes", async () => {
 
     const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
 
-    const flightNumber = Web3Utils.hexToBytes(Web3Utils.toHex('BA125'));
-    const flightId = await seatsDistributor.getFlightId(flightNumber, 1543734893);
-    const signature = web3.eth.sign(contractOwner, flightId);
-
-    console.log('flightNumber ', flightNumber);
-    console.log('flightId ', flightId);
-    console.log('creating signature is ' + signature)
-
     const expectedAirlineAddresses = await seatsDistributor.getActiveAirlines();
-    console.log('expectedAirlineAddresses ' + expectedAirlineAddresses);
     assert.equal(expectedAirlineAddresses[0], contractOwner);  // expectedAirlineAddresses[0] will be the contractOwner who prepopulates a flight in the contract constructor
 
-    // const flightIdsForAirline = await seatsDistributor.getFlightIdsForAirline(contractOwner);
-    // console.log('flightIdsForAirline ' + expectedAirlineAddresses);
-    // assert.equal(flightIdsForAirline.length, 1);
+    const flightIds = await seatsDistributor.getFlightIdsForAirline(contractOwner)
+    assert.equal(flightIds.length === 1, true);
+
   });
 
+  /**
+   * test that an airline can create a flight
+   */
   it("an airline can create a flight", async () => {
 
     const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
@@ -68,7 +65,9 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
     assert.equal(flightIdsForAirline.length, 1);
   });
 
-
+  /**
+   * negative test case for create flight, an airline should not be able to create a flight when the departure date is in the past
+   */
   it("should not create a flight when departure date is in the past", async () => {
 
     const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
@@ -114,7 +113,9 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
     assert.equal(complete, false);
   });
 
-
+  /**
+   * tests that an airline can add seat inventory to their flight
+   */
   it("airline can add seat inventory to their flight cabins", async () => {
 
     const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
@@ -150,6 +151,9 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
   });
 
 
+  /**
+   *  tests that an airline cannot exceed the total number of seats allowed for a given flight
+   */
   it("airline cannot add more seat inventory than the total number of seats for this flight", async () => {
 
     // the maximum allowed 3 seats for this flight were added in the preceding unit test, adding more here should cause failure.
@@ -181,7 +185,9 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
 
   });
 
-
+  /**
+   * tests that only the airline who owns the flight can add seat inventory
+   */
   it("ensures only the airline who owns the flight can add seat inventory to this flight", async () => {
 
     const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
@@ -211,7 +217,10 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
     assert.equal(complete, false);
   });
 
-
+  /**
+   * tests that a passenger can book a seat and that they then own the newly minted ERC721 seat token
+   * also tests that the airline can withdraw the seat fees which were deposited from the passenger
+   */
   it("passenger can book a seat on a flight and receive a unique ER721 Seat token", async () => {
 
     const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
@@ -262,7 +271,9 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
 
   });
 
-
+  /**
+   * tests that correct amount is sent for the seat fee
+   */
   it("ensures amount sent by passenger covers the cost of seat", async () => {
 
     const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
@@ -289,7 +300,11 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
     assert.equal(complete, false);
   });
 
-
+  /**
+   *  tests that the passenger can checkin for their flight, which burns their ERC721 seat token and sends back a new ERC721 Boarding Pass token
+   *  tests that the passenger is no longer the owner of the ERC721 seat after checkin
+   *  tests that the passenger is the owner of the newly minted ERC721 Boarding Pass
+   */
   it("passenger can checkin for their flight, which burns their ERC721 seat token and sends back a new ERC721 Boarding Pass token. ", async () => {
 
     const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
@@ -330,7 +345,10 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
 
   });
 
-
+  /**
+   * tests that only the passenger who owns the ERC721 Seat can checkin this seat for their flight
+   * books a new seat for a passenger and then invokes checkin function called by a hacker for this same seat
+   */
   it("ensures only the passenger who owns the ERC721 Seat can checkin this seat for their flight ", async () => {
 
     const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
@@ -382,7 +400,9 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
     assert.equal(complete, false);
   });
 
-
+  /**
+   * tests the emergency-stop implementation, passenger cannot book when the contract has been paused, and can then re-book when the contract has been unpaused
+   */
   it("passenger cannot book a seat when the contract has been paused via emergency-stop, can then book again once contract has been unpaused.", async () => {
 
     const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
@@ -439,7 +459,11 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
     assert.equal(passenger, erc721TokenOwner);
   });
 
-
+  /**
+   * tests that both airline and passengers can cancel seats.
+   * This test cancels 2 seats belonging to the passenger, one cancellation initiated by the airline, the second cancellation initiated by the passenger.
+   * Then the airline invokes processAirlineRefunds() which delivers the refunds to the passenger, with final assertions made on the passenger's account balance.
+   */
   it("airline can cancel a seat booking, airline takes back the ER721 Seat token and places a BookingRefund in a queue to process later", async () => {
 
     const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
@@ -447,10 +471,6 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
     const flightId = flightIdsForAirline[0];
     const seatIdsForFlight = await seatsDistributor.getSeatsForFlight(flightId);
     const seatIdCancelledByAirline = seatIdsForFlight[1];
-
-    // const seatPriceEth = 2;
-    // const seatPriceWei = Web3Utils.toWei(seatPriceEth.toString(), "ether");
-    // const passengerOriginalWeiBalance = await web3.eth.getBalance(passenger);
 
     await seatsDistributor.cancelSeatBooking(
         seatIdCancelledByAirline,
@@ -481,7 +501,6 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
     assert.equal(seatCancelledByPassenger[3], seatOccupiedStatus.Vacant);
 
     const amountToRefund = seatCancelledByAirline[2].plus(seatCancelledByPassenger[2]);
-    console.log('amountToRefund ' + amountToRefund);
 
     const pseudoRandomNumber = Math.floor(Date.now() / 1000);
     const hash = Web3Utils.soliditySha3(
@@ -512,111 +531,5 @@ contract("FlightSeatsGlobalDistributor", ([contractOwner, passenger, airline, ha
 
   });
 
-
-
-  // it("passenger can cancel a seat booking, airline takes back the ER721 Seat token and places a BookingRefund in a queue to process later", async () => {
-  //
-  //   const seatsDistributor = await FlightSeatsGlobalDistributor.deployed();
-  //   const flightIdsForAirline = await seatsDistributor.getFlightIdsForAirline(airline);
-  //   const flightId = flightIdsForAirline[0];
-  //   const seatIdsForFlight = await seatsDistributor.getSeatsForFlight(flightId);
-  //   let seatId = seatIdsForFlight[5];
-  //
-  //   // const seatPriceEth = 3;
-  //   // const seatPriceWei = Web3Utils.toWei(seatPriceEth.toString(), "ether");
-  //
-  //   await seatsDistributor.cancelSeatBooking(
-  //       seatId,
-  //       {
-  //         from: passenger
-  //       }
-  //   );
-  //
-  //   const erc721TokenOwner = await seatsDistributor.ownerOf(seatId);
-  //   assert.equal(airline, erc721TokenOwner);
-  //
-  //   const seat1 = await seatsDistributor.getSeat(seatId);
-  //   assert.equal(seat1[3], seatOccupiedStatus.Vacant);
-  //
-  //   seatId = seatIdsForFlight[6];
-  //
-  //   await seatsDistributor.cancelSeatBooking(
-  //       seatId,
-  //       {
-  //         from: passenger
-  //       }
-  //   );
-  //
-  //   const erc721TokenOwner2 = await seatsDistributor.ownerOf(seatId);
-  //   assert.equal(airline, erc721TokenOwner2);
-  //
-  //   const seat2 = await seatsDistributor.getSeat(seatId);
-  //   assert.equal(seat2[3], seatOccupiedStatus.Vacant);
-  //
-  //
-  //   //
-  //   // console.log('seat number is ' + seat[1]);
-  //   // console.log('seatPrice is ' + seat[2]);
-  //
-  //   // const passengerOriginalWeiBalance = await web3.eth.getBalance(passenger);
-  //   //
-  //   // const pseudoRandomNumber = Math.floor(Date.now() / 1000);
-  //   // const hash = Web3Utils.soliditySha3(
-  //   //     { type: 'address', value: airline },
-  //   //     { type: 'uint256', value: seatPriceWei },
-  //   //     { type: 'uint256', value: pseudoRandomNumber }
-  //   // );
-  //   // const signature = web3.eth.sign(airline, hash);
-  //   //
-  //   // await seatsDistributor.processAirlineRefunds(
-  //   //     seatPriceWei,
-  //   //     pseudoRandomNumber,
-  //   //     signature,
-  //   //     {
-  //   //       from: airline,
-  //   //       value: seatPriceWei
-  //   //     }
-  //   // );
-  //   //
-  //   // const passengerFinalWeiBalance = await web3.eth.getBalance(passenger);
-  //   // const expectedEth = parseFloat(Web3Utils.fromWei(passengerOriginalWeiBalance.toString(), "ether")) + seatPriceEth;
-  //   // const expectedWeiBalance = Web3Utils.toWei(expectedEth.toString(), "ether");
-  //   //
-  //   // assert.equal(passengerFinalWeiBalance.toNumber(), expectedWeiBalance);
-  //
-  // });
-  //
-  // it("airline can process the refunds for the passenger, the refunds were triggered when the airline/passenger cancelled the seats ", async () => {
-  //
-  //   const seatPriceEth = 3;
-  //   const seatPriceWei = Web3Utils.toWei(seatPriceEth.toString(), "ether");
-  //   const passengerOriginalWeiBalance = await web3.eth.getBalance(passenger);
-  //
-  //   const pseudoRandomNumber = Math.floor(Date.now() / 1000);
-  //   const hash = Web3Utils.soliditySha3(
-  //       { type: 'address', value: airline },
-  //       { type: 'uint256', value: seatPriceWei },
-  //       { type: 'uint256', value: pseudoRandomNumber }
-  //   );
-  //   const signature = web3.eth.sign(airline, hash);
-  //
-  //   await seatsDistributor.processAirlineRefunds(
-  //       seatPriceWei,
-  //       pseudoRandomNumber,
-  //       signature,
-  //       {
-  //         from: airline,
-  //         value: seatPriceWei
-  //       }
-  //   );
-  //
-  //   const passengerFinalWeiBalance = await web3.eth.getBalance(passenger);
-  //   const expectedEth = parseFloat(Web3Utils.fromWei(passengerOriginalWeiBalance.toString(), "ether")) + seatPriceEth;
-  //   const expectedWeiBalance = Web3Utils.toWei(expectedEth.toString(), "ether");
-  //
-  //   assert.equal(passengerFinalWeiBalance.toNumber(), expectedWeiBalance);
-  //
-  //
-  // });
 
 });
