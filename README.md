@@ -38,9 +38,9 @@ This project is a proof-of-concept implementation for a decentralised airline Gl
 
 Please note only the passenger use-cases of book-seat and checkin are available to demo via a lite-server UI layer. A web interface for allowing airlines to create flights and populate seat inventory was beyond scope given deadline-constraints. However the airline create-flight/populate seat-inventory operations are invoked in the contract's constructor to provide the passenger booking UI flow with a flight to choose and seats to book. Additionally, every airline use-case is extensively unit-tested to validate expected functionality.
 
-Please see [installation instructions](Installation_Instructions.md) which details demo pre-requisites and how to setup from scratch on VirtualBox Ubuntu. A local running IPFS instance is required, along with node version 9, npm version 6.2.0, ganache-cli, truffle, metamask. A minimum of 2018 MB memory is required on the VirtualBox Ubuntu instance. 
+Please see [installation instructions](installation_instructions.md) which details demo pre-requisites and how to setup from scratch on VirtualBox Ubuntu. A local running IPFS instance is required, along with node version 9, npm version 6.2.0, ganache-cli, truffle, metamask. A minimum of 2018 MB memory is required on the VirtualBox Ubuntu instance. 
 
-Assuming [installation instructions](Installation_Instructions.md) and prerequisites are met, proceed as follows:
+Assuming [installation instructions](installation_instructions.md) and prerequisites are met, proceed as follows:
 
 ```sh
 $ npm install 
