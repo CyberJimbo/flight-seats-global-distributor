@@ -422,7 +422,6 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
     }
 
 
-
     /**
     * @dev checks in a passenger, burns their ERC721 Seat token, mints new ERC721 Boarding Pass token containing QR-code barcode-string and IPFS passport-scan hash
     * @param _seatId uint256 of the seat which is to be booked
@@ -464,9 +463,11 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
         return _boardingPassId;
     }
 
+
     function emitBoardingPassGeneratedEvent(BoardingPass memory _boardingPass, Flight memory _flight) private view {
         emit BoardingPassGeneratedEvent(_boardingPass.id, msg.sender, _boardingPass.seatId, _boardingPass.passportScanIpfsHash, _flight.flightNumber, _flight.departureDateTime, _flight.origin, _flight.destination, seats[_boardingPass.seatId].seatNumber);
     }
+
 
     // builds a barcode-string to be encoded in a Boarding Pass QRcode containing the salient flight and seat information for a given seatId
     function getBarcodeStringParametersForBoardingPass(uint256 _seatId) public view returns (bytes8, bytes3, bytes3, uint256, bytes4){
