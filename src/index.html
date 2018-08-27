@@ -78,7 +78,7 @@
                      data-holder-rendered="true">
                 <br/><br/>
                 <strong>Seat Number</strong>: <span class="seat-number">1A</span><br/>
-                <strong>Price</strong>: <span class="seat-price">2 ETH</span><br/>
+                <strong>Price (Wei)</strong>: <span class="seat-price">2 ETH</span><br/>
                 <strong>Seat status</strong>: <span class="seat-status">Vacant</span><br/>
                 <strong>Cabin class</strong>: <span class="seat-cabin">Economy</span><br/><br/>
                 <button class="btn btn-default btn-book-seat" type="button" data-id="0">Select Seat</button>
@@ -121,14 +121,14 @@
 
       <div id="checkinRow" class="row" hidden>
         <div class="row">
-          <div class="col-xs-12 col-sm-8 col-sm-push-2">
-            <h1 class="text-center">Please submit your passport scan and complete checkin</h1>
+          <div class="col-md-12">
+            <h1 class="text-center">Please submit your passport scan and then complete checkin</h1>
             <hr/>
             <br/>
           </div>
         </div>
         <div id="checkinTemplate">
-          <div id="fileUploadTemplate" class="col-sm-6 col-md-4 col-lg-3">
+          <div id="fileUploadTemplate" class="col-md-12">
             <form action="/">
               <fieldset>
                 <legend>Upload Passport Scan Image to IPFS</legend>
@@ -146,9 +146,12 @@
             <img id="output">
           </div>
           <br/><br/>
-          <div id="completeCheckin" hidden>
+          <div id="completeCheckin" style="text-align:center;"hidden>
             <button class="btn btn-default btn-complete-checkin" type="button" data-id="0">Complete Checkin</button>
           </div>
+          <br/>
+          <br/>
+          <br/>
         </div>
       </div>
 

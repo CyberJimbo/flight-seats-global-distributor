@@ -210,10 +210,10 @@ App = {
       console.log(params[4]);
       console.log('params');
       console.log(seatId)
-      barcodeStringForBoardingPass = appWeb3.toUtf8(params[0]) +
-          appWeb3.toUtf8(params[1]).trim() +
-          appWeb3.toUtf8(params[2]).trim() +
-          params[3] +
+      barcodeStringForBoardingPass = appWeb3.toUtf8(params[0]) + "-" +
+          appWeb3.toUtf8(params[1]).trim() + "-" +
+          appWeb3.toUtf8(params[2]).trim() + "-" +
+          params[3] + "-" +
           appWeb3.toUtf8(params[4]).trim();
       $("#checkinTemplate").find('.btn-complete-checkin').attr('data-id', (seatId + "," + barcodeStringForBoardingPass));
     }).catch(function (error) {
