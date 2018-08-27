@@ -141,11 +141,11 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
     }
 
     constructor() public {
-        createFlight(0x4241313235000000,0x4c4852,0x4a464b,1543734893,0x4241,"British Airways",9,owner,abi.encodePacked(""),555);
-//        createFlight(0x444c353535000000,0x4c4852,0x4a464b,1542412800,0x444c,"Delta Airlines",owner,abi.encodePacked(""));
+        createFlight(0x4241313235000000,0x4c4852,0x4a464b,1543734893,0x4241,"British Airways",6,owner,abi.encodePacked(""),555);
+//        createFlight(0x444c353535000000,0x4c4852,0x4a464b,1542412800,0x444c,"Delta Airlines",6,owner,abi.encodePacked(""),666);
 
-        bytes4[] memory _seatNumbersPrepopulated = new bytes4[](3);
-        uint256[] memory _seatPricesPrepopulated = new uint256[](3);
+        bytes4[] memory _seatNumbersPrepopulated = new bytes4[](2);
+        uint256[] memory _seatPricesPrepopulated = new uint256[](2);
 
         _seatNumbersPrepopulated[0] = stringToBytes4("1A");
         _seatNumbersPrepopulated[1] = stringToBytes4("1B");
