@@ -108,12 +108,13 @@ Events are emitted for important actions, seat bookings, checkins, refunds etc.
 # Libraries:
 
 The contract uses the OpenZepellin library ECRecovery to validate digital signatures, for example in processAirlineRefunds:
-		
-		using ECRecovery for bytes32;
-		.....
-		.....
-		bytes32 airlineSigned = keccak256(abi.encodePacked(msg.sender, _amountToRefund, _nonce)).toEthSignedMessageHash();
-        require(airlineSigned.recover(_airlineSig) == msg.sender, "Invalid airline signature, nice try");
+```javascript		
+using ECRecovery for bytes32;
+.....
+.....
+bytes32 airlineSigned = keccak256(abi.encodePacked(msg.sender, _amountToRefund, _nonce)).toEthSignedMessageHash();
+require(airlineSigned.recover(_airlineSig) == msg.sender, "Invalid airline signature, nice try");
+```
 
 Additional OpenZepellin contracts are imported for inheritance to facilitate ``ERC721Token`` and ``Pausable``.
 
