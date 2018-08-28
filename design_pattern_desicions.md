@@ -4,7 +4,7 @@ As outlined in the [README](README.md), the primary design decision is to use th
 
 To facilitate the minting and distribution of ERC721 NFTs, the primary contract FlightSeatsGlobalDistributor.sol inherits from the OpenZeppelin contract ERC721Token.sol, which is OpenZeppelin's implementation of the ERC721 standard.
 
-# Design Decisions for Airline functions:
+# Design Decisions for Airline Functions:
 
 The ``createFlight()`` and ``addSeatInventoryToFlightCabin()`` functions allow the Airline to initiate a flight in contract storage and populate the flight with seat inventory per-cabin. 
 
@@ -20,7 +20,7 @@ When passengers book seats the fees are not immediately pushed to the airline. T
 
 Similarly when Seats are cancelled BookingRefunds are not immediately processed, BookingRefunds are persisted in storage to be processed in queue-like fashion when the airline invokes processAirlineRefunds(), and then the BookingRefunds are removed from storage. The processAirlineRefunds() function validates the airline's digital signature containing airlineAddress, amountToRefund and nonce, to eliminate replay attacks. 
 
-# Design decisions for Passenger functions.
+# Design Decisions for Passenger Functions.
 
 ### Seat Bookings
 
@@ -93,16 +93,16 @@ modifier onlyAirlineOfFlight(bytes8 _flightNumber, uint _departureDateTime){
 }
 ```
 
-#### Self-destruct
+### Self-destruct
 Self-destruct is used to allow the contract owner to terminate the contract with remaining funds sent to contract owner.
 
-#### Pull Withdrawals
+### Pull Withdrawals
 Withdrawal design-pattern is used for airline fees and passenger refunds to reduce vulnerabilities.
 
-#### Enums
+### Enums
 Enums are used to track state-transitions, and these are considered in fail-early ``require()`` conditions when relevant, such as ``seat.occupiedStatus``. 
 
-#### Events
+### Events
 Events are emitted for important actions, seat bookings, checkins, refunds etc.
 
 # Libraries:
