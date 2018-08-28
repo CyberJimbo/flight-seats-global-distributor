@@ -115,7 +115,7 @@ The contract uses the OpenZepellin library ECRecovery to validate digital signat
 		bytes32 airlineSigned = keccak256(abi.encodePacked(msg.sender, _amountToRefund, _nonce)).toEthSignedMessageHash();
         require(airlineSigned.recover(_airlineSig) == msg.sender, "Invalid airline signature, nice try");
 
-Additional OpenZepellin contracts are imported for inheritance to facilitate ERC721 and Pausable.
+Additional OpenZepellin contracts are imported for inheritance to facilitate ``ERC721Token`` and ``Pausable``.
 
 # Stretch Objectives.
 
