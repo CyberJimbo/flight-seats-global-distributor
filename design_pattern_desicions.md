@@ -119,7 +119,7 @@ Additional OpenZepellin contracts are imported for inheritance to facilitate ERC
 
 # Stretch Objectives.
 
-#### Intregration with IPFS.
+### Intregration with IPFS.
 
 During the checkin flow the passenger uploads their passport-scan to IPFS and submits the IPFS hash to the ``checkinPassenger()`` function to construct their ERC721 Boarding Pass NFT which includes this IPFS hash.
 
