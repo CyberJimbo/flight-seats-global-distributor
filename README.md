@@ -2,7 +2,7 @@
 
 The goal of this project is to re-imagine the flight booking, check-in and boarding pass processes, distributing flight-seats and boarding passes to passengers as ERC721 Non-Fungible Tokens.
 
-The ERC721 Standard is a (draft) standard for creating Non-Fungible Token (NFT) contracts. Non-fungible means not completely interchangeable. Whereas ERC20 tokens are fungible with respect to each unit being identical to every other unit, in contrast ERC721 NFTs enable us to create digital bearer-instruments for cryptographic value-assets with differentiating charactersitcs. This is perfectly suited to value-assets like flight seats and boarding passes where each seat has a unique seat number and each boarding pass should be associated with a unique passenger.
+The ERC721 Standard is a (draft) standard for creating Non-Fungible Token (NFT) contracts. Non-fungible means not completely interchangeable. Whereas ERC20 tokens are fungible with respect to each unit being identical to every other unit, in contrast ERC721 NFTs enable us to create digital bearer-instruments for cryptographic value-assets with differentiating characteristics. This is perfectly suited to value-assets like flight seats and boarding passes where each seat has a unique seat number and each boarding pass should be associated with a unique passenger.
 
 # Rationale
 
@@ -56,7 +56,7 @@ The final command ``npm run dev`` will start a locally running lite-server insta
 
 # Steps to demo
 
-First log into metamask using the same seed phrase from your local running ganache-cli instance. Then switch to another of the ganche accounts in metamask instead of the default account, you can do this by selecting 'create account' in metamask which switches to another availabel ganache account. The default account is used by the contract owner to prepopulate a single flight and airline belonging to this account for demo purposes, and you cannot proceed through the flight booking and checkin flows using the same default account
+First log into metamask using the same seed phrase from your local running ganache-cli instance. Then switch to another of the ganache accounts in metamask instead of the default account, you can do this by selecting 'create account' in metamask which switches to another available ganache account. The default account is used by the contract owner to prepopulate a single flight and airline belonging to this account for demo purposes, and you cannot proceed through the flight booking and checkin flows using the same default account
 
   - First screen shows a single flight pre-populated from the contract's constructor. Select book flight.
   - Select a seat (confirm transaction in metamask for cost of seat)
