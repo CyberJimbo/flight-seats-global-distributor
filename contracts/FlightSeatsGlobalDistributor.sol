@@ -36,7 +36,7 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
     }
 
     /**
-     * Ensure the given message sender is the passenger who owns the seat or the airline of the flight
+     * Ensure the given message sender is the airline of the flight
      */
     modifier onlyAirlineOfFlight(bytes8 _flightNumber, uint _departureDateTime){
         require(getAirlineAddressForFlight(_flightNumber, _departureDateTime) == msg.sender, "Must be airline of the flight");
@@ -258,6 +258,7 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
         returns (bytes32)
     {
         require(!usedNonces[_nonce]);
+        usedNonces[_nonce] = true;
 
         bytes32 _flightId = getFlightId(_flightNumber, _departureDateTime);
         bytes32 _expectedSignature = keccak256(abi.encodePacked(_flightId, _airlineAddress, _nonce)).toEthSignedMessageHash();
@@ -286,7 +287,6 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
 
         activeAirlines.push(_airlineAddress);
         flightIds[_airlineAddress].push(_flightId);
-        usedNonces[_nonce] = true;
 
         return _flightId;
     }
@@ -523,9 +523,10 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
     {
         require(airlineRefundsToBeProcessed[msg.sender].length > 0, "this airline does not have any refunds to process");
         require(!usedNonces[_nonce], "nonce already used");
+        usedNonces[_nonce] = true;
         require(_amountToRefund == msg.value, "amountToRefund does not equal amount sent");
 
-        // Check the signer of the offer is the correct airline address to prevent replay attacks
+        // Check the signer of the transaction is the correct airline address to prevent replay attacks
         bytes32 airlineSigned = keccak256(abi.encodePacked(msg.sender, _amountToRefund, _nonce)).toEthSignedMessageHash();
         require(airlineSigned.recover(_airlineSig) == msg.sender, "Invalid airline signature, nice try");
 
