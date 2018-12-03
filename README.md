@@ -16,7 +16,7 @@ It is unlikely an airline would wish to distribute all flight-seats in this mann
 Furthermore, airlines are beholden to the big legacy Global Distribution System providers just to distribute their own seat inventory (Sabre, Amadeus, Travelport), resulting in notoriously low profit margins for the airlines. Opening up a decentralised direct-to-consumer channel for airlines could help to disintermediate these middle-men organisations. 
 # This Project 
 
-This project is a proof-of-concept implementation for a decentralised airline Global Distribution System (GDS). It allows airlines to create flights and populate the flights with seat inventory. It allows passengers to book seats and receive ERC721 Seat NFTs. It allows passengers to check in for the flight by submitting identity documents via IPFS and receiving ERC721 Boarding Pass NFTs. A complete list of use cases are described below:
+This project is a proof-of-concept implementation for a decentralised airline Global Distribution System (GDS). It allows airlines to create flights and populate the flights with seat inventory. It allows passengers to book this seat inventory and receive ERC721 seat NFTs. It allows passengers to check in for the flight by submitting identity documents via IPFS in order to receive an ERC721 boarding pass NFTs. A complete list of use cases are described below:
 
 # Airline Use-Cases
 
@@ -26,15 +26,15 @@ This project is a proof-of-concept implementation for a decentralised airline Gl
 
 3. Withdraw Flight Fees. Airline can withdraw their fees from passengers' seat bookings via a pull-based payments/withdraw system.
 
-4. Cancel Seat Bookings. Airline can cancel a passenger's seat booking, which takes back their ERC721 Seat and triggers a refund to be queued for the passenger.
+4. Cancel Seat Bookings. Airline can cancel a passenger's seat booking, which repossesses their ERC721 seat and triggers a refund to be queued for the passenger.
 
 5. Process Refunds. Airline can process the refunds queue to trigger payouts to passengers who are owed refunds from seat cancellations
 
 # Passenger Use-Cases
 
-6. Book Seat. Passengers can book available flight seats and receive ERC721 Seats for their booking.
+6. Book Seat. Passengers can book available flight seats and receive ERC721 seats for their booking.
 
-7. Check-In. Passengers can check-in for flights which returns their ERC721 Seat to the airline. The ERC721 Seat is subsequently burned by the airline. The passenger supplies a IPFS hash for their passport-scan image in this check-in operation. When check-in succeeds the passenger receives back another ERC721 token for their Boarding Pass which is uniquely associated with their IPFS passport-scan hash.
+7. Check-In. Passengers can check-in for flights which returns their ERC721 seat to the airline. The ERC721 seat is subsequently burned by the airline. The passenger supplies a IPFS hash for their passport-scan image in this check-in operation. When check-in succeeds the passenger receives back another ERC721 token for their boarding pass which is uniquely associated with their IPFS passport-scan hash.
 
 8. Cancel Seat Bookings. Passengers can also cancel their seat booking, which returns their ERC721 Seat to the airline and triggers a refund to be queued for the passenger.
 
