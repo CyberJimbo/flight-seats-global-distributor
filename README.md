@@ -20,15 +20,15 @@ This project is a proof-of-concept implementation for a decentralised airline Gl
 
 # Airline Use-Cases
 
-1. Create Flight. Airline supplies flight-itinerary information to initiate a flight in contract storage.
+1. Create Flight. Airlines supply flight-itinerary information to initiate a flight in contract storage.
 
-2. Add Seat Inventory. Airline supplies seat numbers and corresponding seat prices for each cabin in the flight.
+2. Add Seat Inventory. Airlines supply seat numbers and corresponding seat prices for each cabin in the flight.
 
-3. Withdraw Flight Fees. Airline can withdraw their fees from passengers' seat bookings via a pull-based payments/withdraw system.
+3. Withdraw Flight Fees. Airlines can withdraw their fees from passengers' seat bookings via a pull-based payments/withdraw system.
 
-4. Cancel Seat Bookings. Airline can cancel a passenger's seat booking, which repossesses their ERC721 seat and triggers a refund to be queued for the passenger.
+4. Cancel Seat Bookings. Airline can cancel a passenger's seat booking which repossesses their ERC721 seat and triggers a refund to be queued for the passenger.
 
-5. Process Refunds. Airline can process the refunds queue to trigger payouts to passengers who are owed refunds from seat cancellations
+5. Process Refunds. Airline can process the refunds queue to trigger payouts to passengers who are owed refunds from seat cancellations.
 
 # Passenger Use-Cases
 
