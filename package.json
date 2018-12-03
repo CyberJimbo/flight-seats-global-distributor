@@ -18,13 +18,13 @@
     "contracts"
   ],
   "devDependencies": {
-    "lite-server": "^2.3.0",
     "eth-gas-reporter": "^0.1.10",
     "ganache-cli": "^6.1.6",
+    "lite-server": "^2.3.0",
     "openzeppelin-solidity": "^1.11.0",
     "solium": "^1.1.8",
     "truffle": "^4.1.13",
-    "truffle-hdwallet-provider": "0.0.5",
+    "truffle-hdwallet-provider": "0.0.6",
     "web3-utils": "^1.0.0-beta.35"
   },
   "dependencies": {

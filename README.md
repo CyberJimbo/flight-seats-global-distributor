@@ -2,17 +2,21 @@
 
 The goal of this project is to re-imagine the flight booking, check-in and boarding pass processes, distributing flight-seats and boarding passes to passengers as ERC721 Non-Fungible Tokens.
 
-The ERC721 Standard is a (draft) standard for creating Non-Fungible Token (NFT) contracts. Non-fungible means not completely interchangeable. Whereas ERC20 tokens are fungible with respect to each unit being identical to every other unit, in contrast ERC721 NFTs enable us to create digital bearer-instruments for cryptographic value-assets with differentiating characteristics. This is perfectly suited to value-assets like flight seats and boarding passes where each seat has a unique seat number and each boarding pass should be associated with a unique passenger.
+The ERC721 standard is a standard for creating Non-Fungible Tokens (NFT). NFTs are cryptographic tokens which are not completely interchangeable. Whereas ERC20 tokens are fungible with respect to each individual unit being identical to every other unit - in contrast ERC721 NFT standard enables us to create digital bearer-instruments for cryptographic value-assets which have differentiating characteristics. This standard is perfectly suited to modelling value-assets like flight seats and boarding passes where each seat must have a unique seat number and where each boarding pass should be associated with a unique passenger.
 
 # Rationale
 
-The benefit of allowing the passenger to hold an ERC721 seat after booking is that it liberates the passenger to potentially sell, trade, swap, or give away their seat before checkin, should the passenger see fit. The ERC721 seat is a digital bearer-instrument belonging solely to the passenger. At checkin time the airline then needs to rediscover who is in possession of the seat to facilitate checkin. It is unlikely an airline would wish to distribute all flight-seats in this manner as it would create a possibility for seat-scalping, however airlines designate a subset of each flight's seats for 'flexible' fares, fares with a higher cost but with greater flexibility to cancel-booking, change dates and passenger names without incurring costs. ERC721 Seats are the ultimate flexible seat and airlines may wish to distribute a subset of flight seats in this manner.
+The benefit of allowing the passenger to hold an ERC721 seat after booking is that it liberates the passenger to potentially sell, trade, swap, or give away their seat before check-in, should the passenger see fit. The ERC721 seat is a digital bearer-instrument belonging solely to the passenger. 
 
-Furthermore, airlines are beholden to the big legacy Global Distribution System providers just to distribute their own seat inventory (Sabre, Amadeus, Travelport), resulting in notoriously low profit margins for the airlines. Opening up a decentralised direct-to-consumer channel for airlines would help to disintermediate these middle-men organisations. 
+The use of ERC721 boarding passes enables us to increase the security of the boarding pass by adding a third security factor.
+At check-in time the passenger who is in possession of the seat NFT submits identity documents to facilitate check-in. The airline subsequently burns the seat NFT and issues the passenger a new ERC721 boarding pass NFT. This boarding pass NFT is derived from the boarding pass' barcode string in combination with a hash of the identity documents, creating a crypto token which is uniquely tailored for this flight, seat and passenger identity. The passenger arriving at the airport needs to be in possession of the boarding pass, the correct passport, and the crypto token derived from these two constituents.
 
+It is unlikely an airline would wish to distribute all flight-seats in this manner as it would create a possibility for seat-scalping. However airlines designate a subset of each flight's seats for 'flexible' fares, fares with a higher cost but with greater flexibility to cancel-booking, change dates and passenger names without incurring costs. ERC721 Seats are the ultimate flexible seat and airlines may wish to distribute a subset of flight seats in this manner.
+
+Furthermore, airlines are beholden to the big legacy Global Distribution System providers just to distribute their own seat inventory (Sabre, Amadeus, Travelport), resulting in notoriously low profit margins for the airlines. Opening up a decentralised direct-to-consumer channel for airlines could help to disintermediate these middle-men organisations. 
 # This Project 
 
-This project is a proof-of-concept implementation for a decentralised airline Global Distribution System (GDS). It allows airlines to create flights and populate the flights with seat inventory. It allows passengers to book seats and receive ERC721 Seat NFTs. It allows passengers to checkin for the flight by submitting identity documents via IPFS and receiving ERC721 Boarding Pass NFTs. A complete list of use cases are described below:
+This project is a proof-of-concept implementation for a decentralised airline Global Distribution System (GDS). It allows airlines to create flights and populate the flights with seat inventory. It allows passengers to book seats and receive ERC721 Seat NFTs. It allows passengers to check in for the flight by submitting identity documents via IPFS and receiving ERC721 Boarding Pass NFTs. A complete list of use cases are described below:
 
 # Airline Use-Cases
 
@@ -30,7 +34,7 @@ This project is a proof-of-concept implementation for a decentralised airline Gl
 
 6. Book Seat. Passengers can book available flight seats and receive ERC721 Seats for their booking.
 
-7. Checkin. Passengers can checkin for flights which returns their ERC721 Seat to the airline. The ERC721 Seat is subsequently burned by the airline. The passenger supplies a IPFS hash for their passport-scan image in this checkin operation. When checkin succeeds the passenger receives back another ERC721 token for their Boarding Pass which is uniquely associated with their IPFS passport-scan hash.
+7. Check-In. Passengers can check-in for flights which returns their ERC721 Seat to the airline. The ERC721 Seat is subsequently burned by the airline. The passenger supplies a IPFS hash for their passport-scan image in this check-in operation. When check-in succeeds the passenger receives back another ERC721 token for their Boarding Pass which is uniquely associated with their IPFS passport-scan hash.
 
 8. Cancel Seat Bookings. Passengers can also cancel their seat booking, which returns their ERC721 Seat to the airline and triggers a refund to be queued for the passenger.
 

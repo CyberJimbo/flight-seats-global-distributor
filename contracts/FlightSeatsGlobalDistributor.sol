@@ -88,6 +88,7 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
         bool paid;
     }
 
+
     address[] public activeAirlines; // airlines currently using the system
 
     mapping(address => bytes32[]) internal flightIds; // airlines to their belonging flightIds
@@ -103,6 +104,7 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
     mapping(address => uint256) private airlineFlightFeeDeposits; // airlines to their seat booking fees which they can withdraw
 
     mapping(uint256 => bool) private usedNonces; // nonces to guarantee unique function invocations
+
 
     // gets the airlines currently using the system
     function getActiveAirlines() public view returns (address[]) {
@@ -188,7 +190,9 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
     );
 
     event FlightFeeDeposited(address indexed airline, uint256 weiAmount);
+
     event FlightFeesWithdrawn(address indexed airline, uint256 weiAmount);
+
     event RefundProcessedEvent(address indexed airline, address indexed recipient, uint256 weiAmount);
 
 
@@ -196,7 +200,7 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
      * @dev Constructor function, creates a single flight for demo purposes, and pre-populates this single flight with seat inventory for 3 cabins.
      */
     constructor() public {
-        createFlight(0x4241313235000000,0x4c4852,0x4a464b,1543734893,0x4241,"British Airways",6,owner,abi.encodePacked(""),555);
+        createFlight(0x4241313235000000,0x4c4852,0x4a464b,1575390854,0x4241,"British Airways",6,owner,abi.encodePacked(""),555);
 
         bytes4[] memory _seatNumbersPrepopulated = new bytes4[](2);
         uint256[] memory _seatPricesPrepopulated = new uint256[](2);
@@ -207,7 +211,7 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
         _seatPricesPrepopulated[0] = 10000000000000000000;
         _seatPricesPrepopulated[1] = 9000000000000000000;
 
-        addSeatInventoryToFlightCabin(0x4241313235000000, 1543734893, _seatNumbersPrepopulated, _seatPricesPrepopulated,CabinClass.First);
+        addSeatInventoryToFlightCabin(0x4241313235000000, 1575390854, _seatNumbersPrepopulated, _seatPricesPrepopulated, CabinClass.First);
 
         _seatNumbersPrepopulated[0] = 0x32410000;
         _seatNumbersPrepopulated[1] = 0x32420000;
@@ -215,7 +219,7 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
         _seatPricesPrepopulated[0] = 6000000000000000000;
         _seatPricesPrepopulated[1] = 5000000000000000000;
 
-        addSeatInventoryToFlightCabin(0x4241313235000000, 1543734893, _seatNumbersPrepopulated, _seatPricesPrepopulated,CabinClass.Business);
+        addSeatInventoryToFlightCabin(0x4241313235000000, 1575390854, _seatNumbersPrepopulated, _seatPricesPrepopulated, CabinClass.Business);
 
         _seatNumbersPrepopulated[0] = 0x33410000;
         _seatNumbersPrepopulated[1] = 0x33420000;
@@ -223,7 +227,7 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
         _seatPricesPrepopulated[0] = 3000000000000000000;
         _seatPricesPrepopulated[1] = 2000000000000000000;
 
-        addSeatInventoryToFlightCabin(0x4241313235000000, 1543734893, _seatNumbersPrepopulated, _seatPricesPrepopulated,CabinClass.Economy);
+        addSeatInventoryToFlightCabin(0x4241313235000000, 1575390854, _seatNumbersPrepopulated, _seatPricesPrepopulated, CabinClass.Economy);
     }
 
 
@@ -556,6 +560,7 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
         _refunds.length -= deleted;
     }
 
+
     // utility to convert bytes32 to string
     function bytes32ToString (bytes32 data) private pure returns (string) {
         bytes memory bytesString = new bytes(32);
@@ -567,6 +572,7 @@ contract FlightSeatsGlobalDistributor is ERC721Token("Flight Seat Distributor", 
         }
         return string(bytesString);
     }
+
 
     // utility to convert uint256 to string
     function uint256ToString (uint256 data) private pure returns (string) {
