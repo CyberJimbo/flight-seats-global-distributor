@@ -2,7 +2,7 @@
 
 The goal of this project is to re-imagine the flight booking, check-in and boarding pass processes, distributing flight-seats and boarding passes to passengers as ERC721 Non-Fungible Tokens.
 
-The ERC721 standard is a standard for creating Non-Fungible Tokens (NFT). NFTs are cryptographic tokens which are not completely interchangeable. Whereas ERC20 tokens are fungible with respect to each individual unit being identical to every other unit - in contrast ERC721 NFT standard enables us to create digital bearer-instruments for cryptographic value-assets which have differentiating characteristics. This standard is perfectly suited to modelling value-assets like flight seats and boarding passes where each seat must have a unique seat number and where each boarding pass should be associated with a unique passenger.
+The ERC721 standard is a standard for creating Non-Fungible Tokens (NFT). NFTs are cryptographic tokens stored on a blockchain which possess unique characteristics. Whereas ERC20 tokens like Ether (ETH) are fungible with respect to each individual unit being identical to every other unit - in contrast ERC721 NFT standard enables us to create digital bearer-instruments for cryptographic value-assets which have differentiating characteristics. This standard is perfectly suited to modelling value-assets like flight seats and boarding passes where each seat must have a unique seat number and where each boarding pass should be associated with a unique passenger.
 
 # Rationale
 
@@ -13,7 +13,8 @@ At check-in time the passenger who is in possession of the seat NFT submits iden
 
 It is unlikely an airline would wish to distribute all flight-seats in this manner as it would create a possibility for seat-scalping. However airlines designate a subset of each flight's seats for 'flexible' fares, fares with a higher cost but with greater flexibility to cancel-booking, change dates and passenger names without incurring costs. ERC721 Seats are the ultimate flexible seat and airlines may wish to distribute a subset of flight seats in this manner.
 
-Furthermore, airlines are beholden to the big legacy Global Distribution System providers just to distribute their own seat inventory (Sabre, Amadeus, Travelport), resulting in notoriously low profit margins for the airlines. Opening up a decentralised direct-to-consumer channel for airlines could help to disintermediate these middle-men organisations. 
+Furthermore, airlines are beholden to the big legacy Global Distribution System providers to distribute their own seat inventory (Sabre, Amadeus, Travelport), resulting in notoriously low profit margins for airlines. Opening up an additional decentralised direct-to-consumer channel for airlines could help to disintermediate these middle-men organisations. 
+
 # This Project 
 
 This project is a proof-of-concept implementation for a decentralised airline Global Distribution System (GDS). It allows airlines to create flights and populate the flights with seat inventory. It allows passengers to book this seat inventory and receive ERC721 seat NFTs. It allows passengers to check in for the flight by submitting identity documents via IPFS in order to receive an ERC721 boarding pass NFTs. A complete list of use cases are described below:
